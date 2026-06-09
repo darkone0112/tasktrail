@@ -3,8 +3,7 @@ const router = express.Router();
 
 /* GET users listing. */
 router.get("/*", function (req, res, next) {
-	// console.log(req.session);
-	if (JSON.stringify(req.session) !== "{}") {
+	if (req.session.userid || req.session.passport?.user) {
 		const session = {
 			username: req.session.username,
 			userid: req.session.userid

@@ -41,7 +41,7 @@ div
 <script>
 import alertify from 'alertifyjs';
 import { alertifysettings, sendVerificationMail } from './utils/helpers';
-import { getUser, routes } from './router/index'
+import { routes, user } from './router/index'
 
 export default {
     name: 'App',
@@ -71,7 +71,7 @@ export default {
         alertify.defaults = alertifysettings;
     },
     async mounted() {
-        this.user = await getUser();
+        this.user = user;
     }
 };
 </script>

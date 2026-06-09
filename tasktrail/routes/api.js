@@ -23,27 +23,35 @@ const handlebarOptions = setHandlebar(".handlebars", path.join(__dirname, "../vi
 transporter.use("compile", hbs(handlebarOptions));
 
 router.get("/get/session", async function (req, res, next) {
-	let errors = {};
-	errors.session = false;
-
-	if (JSON.stringify(req.session) === "{}") errors.query = true;
-
-	if (req.session.passport !== undefined) {
-		res.json(req.session.passport.user);
-		return;
-	}
-
-	const user = await prisma.users.findUnique({
-		where: {
-			id: req.session.userid
+	try {
+		if (req.session.passport?.user) {
+			return res.json(req.session.passport.user);
 		}
-	});
 
-	req.session.username = user.username;
-	req.session.verified = user.verified;
-	req.session.img = user.img;
+		if (!req.session.userid) {
+			return res.status(401).json({ error: "Authentication required" });
+		}
 
-	res.json(req.session);
+		const user = await prisma.users.findUnique({
+			where: {
+				id: req.session.userid
+			}
+		});
+
+		if (!user || user.disabled) {
+			req.session = null;
+			return res.status(401).json({ error: "Session user is unavailable" });
+		}
+
+		req.session.username = user.username;
+		req.session.verified = user.verified;
+		req.session.email = user.email;
+		req.session.img = user.img;
+
+		return res.json(req.session);
+	} catch (error) {
+		return next(error);
+	}
 });
 
 //#region tasks

@@ -207,9 +207,9 @@ export const alertifysettings = {
 		// dialogs default title
 		title: "AlertifyJS",
 		// ok button text
-		ok: i18n.t("logout.confirm.confirm"),
+		ok: i18n.global.t("logout.confirm.confirm"),
 		// cancel button text
-		cancel: i18n.t("logout.confirm.cancel")
+		cancel: i18n.global.t("logout.confirm.cancel")
 	},
 
 	// theme settings
