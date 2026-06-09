@@ -1,8 +1,7 @@
-import Vue from "vue";
-import VueI18n from "vue-i18n";
+import { createI18n } from "vue-i18n";
 import messages from "../locales/locales";
-Vue.use(VueI18n);
-export const i18n = new VueI18n({
+export const i18n = createI18n({
+	legacy: true,
 	locale: localStorage.getItem("locale") || "es", // idioma por defecto
 	fallbackLocale: "en",
 	messages

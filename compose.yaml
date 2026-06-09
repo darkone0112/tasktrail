@@ -1,0 +1,47 @@
+services:
+  app:
+    build:
+      context: ./tasktrail
+      target: production
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+      APP_NAME: TaskTrail
+      APP_DOMAIN: http://localhost:${TASKTRAIL_PORT:-3000}
+      DATABASE_URL: mysql://tasktrail:${TASKTRAIL_DB_PASSWORD:-tasktrail-dev}@db:3306/tasktrail
+      COOKIE_KEYS: ${TASKTRAIL_COOKIE_KEYS:-replace-this-key-before-deployment}
+      MAIL_USER: ${MAIL_USER:-}
+      MAIL_PASSWD: ${MAIL_PASSWD:-}
+      MAIL_HOST: ${MAIL_HOST:-}
+      SMTP_PORT: ${SMTP_PORT:-}
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
+      GOOGLE_CALLBACK_URL: ${GOOGLE_CALLBACK_URL:-}
+    ports:
+      - "${TASKTRAIL_PORT:-3000}:3000"
+    volumes:
+      - uploads:/app/public/media/images/uploads
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: unless-stopped
+
+  db:
+    image: mariadb:11.4
+    environment:
+      MARIADB_DATABASE: tasktrail
+      MARIADB_USER: tasktrail
+      MARIADB_PASSWORD: ${TASKTRAIL_DB_PASSWORD:-tasktrail-dev}
+      MARIADB_ROOT_PASSWORD: ${TASKTRAIL_DB_ROOT_PASSWORD:-tasktrail-root-dev}
+    volumes:
+      - database:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+    restart: unless-stopped
+
+volumes:
+  database:
+  uploads:

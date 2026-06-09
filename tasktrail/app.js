@@ -13,6 +13,11 @@ const passport = require("passport");
 
 var app = express();
 
+const cookieKeys = (process.env.COOKIE_KEYS || "p9qMAnmUc8g8c1teljsW,OMV16kITrlbKpCQJn4h4")
+	.split(",")
+	.map(key => key.trim())
+	.filter(Boolean);
+
 var indexRouter = require("./routes/index");
 var usersRouter = require("./routes/users");
 var apiRouter = require("./routes/api");
@@ -22,9 +27,31 @@ var tokensRouter = require("./routes/tokens");
 app.use(
 	cookieSession({
 		name: "session",
-		keys: ["p9qMAnmUc8g8c1teljsW", "OMV16kITrlbKpCQJn4h4"]
+		keys: cookieKeys
 	})
 );
+
+function addCookieSessionMethods(req) {
+	Object.defineProperties(req.session, {
+		regenerate: {
+			value: callback => {
+				req.session = {};
+				addCookieSessionMethods(req);
+				callback();
+			}
+		},
+		save: {
+			value: callback => callback()
+		}
+	});
+}
+
+// Passport 0.6+ requires the session store to regenerate and save sessions.
+// cookie-session stores all state client-side, so provide equivalent hooks.
+app.use((req, res, next) => {
+	addCookieSessionMethods(req);
+	next();
+});
 
 // view engine setup
 app.set("views", path.join(__dirname, "views"));
@@ -51,15 +78,19 @@ app.use((req, res, next) => {
 	next();
 });
 
-// passport strategy
-require("./middleware/google");
+const googleAuthEnabled = Boolean(process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET && process.env.GOOGLE_CALLBACK_URL);
+app.set("googleAuthEnabled", googleAuthEnabled);
+
+if (googleAuthEnabled) {
+	require("./middleware/google");
+}
+
+app.use(passport.initialize());
+app.use(passport.session());
 
 app.use("/", indexRouter, tokensRouter);
 app.use("/u", usersRouter);
 app.use("/api", apiRouter);
-
-app.use(passport.initialize());
-app.use(passport.session());
 
 // catch 404 and forward to error handler
 app.use(function (req, res, next) {

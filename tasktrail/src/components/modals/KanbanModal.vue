@@ -22,12 +22,13 @@ div(@keyup.esc="isActive = false")
 </template>
 
 <script>
-import { Twitter } from 'vue-color'
+import { TwitterPicker } from 'vue-color'
+import 'vue-color/style.css'
 import { Helper } from '../../utils/helperClass.js'
 
 export default {
     components: {
-        SwatchPicker: Twitter,
+        SwatchPicker: TwitterPicker,
     },
     data() {
         return {

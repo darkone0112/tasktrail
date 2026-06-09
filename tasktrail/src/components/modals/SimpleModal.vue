@@ -47,7 +47,8 @@
 </template>
 
 <script>
-import DatePicker from 'v-calendar/lib/components/date-picker.umd'
+import { DatePicker } from 'v-calendar'
+import 'v-calendar/style.css'
 import { Helper } from '../../utils/helperClass.js'
 
 export default {

@@ -1,5 +1,8 @@
 // webpack.config.js
+require("dotenv").config();
+
 const path = require("path");
+const webpack = require("webpack");
 const { VueLoaderPlugin } = require("vue-loader");
 
 module.exports = (env, argv) => {
@@ -20,7 +23,12 @@ module.exports = (env, argv) => {
 		},
 		plugins: [
 			// make sure to include the plugin!
-			new VueLoaderPlugin()
+			new VueLoaderPlugin(),
+			new webpack.DefinePlugin({
+				__VUE_OPTIONS_API__: true,
+				__VUE_PROD_DEVTOOLS__: false,
+				__VUE_PROD_HYDRATION_MISMATCH_DETAILS__: false
+			})
 		],
 		module: {
 			rules: [
@@ -38,11 +46,7 @@ module.exports = (env, argv) => {
 				},
 				{
 					test: /\.css$/,
-					use: ["style-loader", "css-loader"],
-					include: [
-						// incluye la carpeta de Alertify.js en el proceso de construcción
-						/node_modules\/alertifyjs/
-					]
+					use: ["style-loader", "css-loader"]
 				}
 			]
 		},
@@ -50,16 +54,18 @@ module.exports = (env, argv) => {
 			static: "./",
 			compress: true,
 			port: 8080,
-			proxy: {
-				// redirect request to port 3000
-				// which is node.js server's port. Check ./bin/www file
-				"/": "http://localhost:3000"
-			}
+			proxy: [
+				{
+					// Redirect requests to the Express server on port 3000.
+					context: ["/"],
+					target: `http://localhost:${process.env.PORT || 3000}`
+				}
+			]
 		},
 		resolve: {
 			alias: {
 				// we have to use Vue Es Modules compatible build
-				vue$: "vue/dist/vue.esm.js"
+				vue$: "vue/dist/vue.esm-bundler.js"
 			}
 		},
 		performance: {

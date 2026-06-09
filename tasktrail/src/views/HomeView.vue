@@ -28,14 +28,14 @@
 
 <script>
 import alertify from 'alertifyjs'
-import { user } from '../router/index'
+import { routes, user } from '../router/index'
 import { getTasks, alertifysettings, applyTheme } from '../utils/helpers'
 
 export default {
     name: 'Home',
     data() {
         return {
-            routes: this.$router.options.routes.filter(route => { return route.meta }),
+            routes: routes.filter(route => { return route.meta }),
 
             welcomeMessage: "",
             user: "",
@@ -44,7 +44,7 @@ export default {
             deadlines: [],
         }
     },
-    beforeDestroy() {
+    beforeUnmount() {
         clearInterval(this.interval)
     },
     created() {

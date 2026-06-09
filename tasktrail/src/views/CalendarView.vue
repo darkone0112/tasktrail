@@ -10,7 +10,7 @@ div
 import alertify from 'alertifyjs'
 import { getTasks, saveTasks, alertifysettings, applyTheme } from '../utils/helpers'
 
-import FullCalendar from '@fullcalendar/vue'
+import FullCalendar from '@fullcalendar/vue3'
 import dayGridPlugin from '@fullcalendar/daygrid'
 import listPlugin from '@fullcalendar/list'
 import interactionPlugin from '@fullcalendar/interaction'

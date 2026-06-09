@@ -1,6 +1,4 @@
-import Vue from "vue";
-import Router from "vue-router";
-Vue.use(Router);
+import { createRouter, createWebHistory } from "vue-router";
 
 import Home from "../views/HomeView.vue";
 import Error from "../views/ErrorView.vue";
@@ -23,7 +21,7 @@ export async function getUser() {
 
 export const user = await getUser();
 
-const routes = [
+export const routes = [
 	// Profile
 	{
 		path: "/u/profile",
@@ -128,14 +126,14 @@ const routes = [
 	},
 	// Error
 	{
-		path: "*",
+		path: "/:pathMatch(.*)*",
 		component: Error
 	}
 ];
 
-const router = new Router({
-	mode: "history",
-	routes: routes
+const router = createRouter({
+	history: createWebHistory(),
+	routes
 });
 
 // Dynamic title

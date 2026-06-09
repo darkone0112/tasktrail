@@ -27,8 +27,9 @@ div
             h1.view-title {{ this.$route.meta.title }}
             p.view-desc {{ this.$route.meta.desc }}
 
-            transition(name="fade" mode="out-in")
-                router-view
+            router-view(v-slot="{ Component }")
+                transition(name="fade" mode="out-in")
+                    component(:is="Component")
 
     .navbar.notification.is-warning.is-fixed-bottom(v-if="!user.verified")
         | {{ this.$t('notifications.emailVerification1') }}&nbsp;
@@ -40,14 +41,14 @@ div
 <script>
 import alertify from 'alertifyjs';
 import { alertifysettings, sendVerificationMail } from './utils/helpers';
-import { getUser } from './router/index'
+import { getUser, routes } from './router/index'
 
 export default {
     name: 'App',
     data() {
         return {
             // Return the routes that contain metadata to display the navbar
-            routes: this.$router.options.routes.filter(route => { return route.meta }),
+            routes: routes.filter(route => { return route.meta }),
             user: {
                 verified: true
             },

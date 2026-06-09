@@ -2,7 +2,7 @@
 
 div
     .svg404
-        img(v-svg-inline src="/media/images/404-app.svg")
+        img(src="/media/images/404-app.svg" alt="")
 
 </template>
 

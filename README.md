@@ -2,40 +2,147 @@
 
 A quick and easy-to-use note taking app.
 
-## Installation
-```sh
-$ git clone https://github.com/icutum/tasktrail.git
-$ cd tasktrail/tasktrail
-$ npm install
-```
-Before running the application, make sure you create a `.env` file in the root folder of the project, and set it up according to the variables provided in the `.env.example` file.
+## What Runs
 
-You will need to set up the database accordingly, in case you're using MariaDB, it goes as follows:
+TaskTrail has two development servers:
+
+- Express and Prisma API: `http://localhost:3000`
+- Webpack frontend dev server: `http://localhost:8080`
+
+Open `http://localhost:8080` while developing. Webpack proxies application and
+API requests to Express on port 3000.
+
+## Prerequisites
+
+- Node.js 20 or 22
+- MariaDB or MySQL
+
+Alternatively, use Docker and keep Node.js and MariaDB off the host.
+
+## Docker Setup
+
+On Arch Linux, install the missing Compose and Buildx plugins if necessary:
+
+```sh
+sudo pacman -S docker-compose docker-buildx
+sudo systemctl enable --now docker
+sudo usermod -aG docker "$USER"
+```
+
+Log out and back in after changing group membership. Until then, prefix Docker
+commands with `sudo`.
+
+The default Compose setup builds the frontend, starts MariaDB, creates the
+database schema, seeds required lookup data, and serves TaskTrail through
+Express:
+
+```sh
+docker compose up --build
+```
+
+Open `http://localhost:3000`.
+
+For hot-reload development, apply the development override:
+
+```sh
+docker compose -f compose.yaml -f compose.dev.yaml up --build
+```
+
+Open `http://localhost:8080`. Source changes are mounted into the container.
+
+Older Docker installations may provide the standalone `docker-compose` command
+instead. Use the same arguments with a hyphen in that case.
+
+The database and uploaded profile images use named volumes and survive
+container recreation. To stop the application, run:
+
+```sh
+docker compose down
+```
+
+To also erase the local container database and uploads:
+
+```sh
+docker compose down --volumes
+```
+
+For anything beyond local testing, set at least these variables in a root
+`.env` file before starting Compose:
+
+```dotenv
+TASKTRAIL_DB_PASSWORD=use-a-strong-password
+TASKTRAIL_DB_ROOT_PASSWORD=use-another-strong-password
+TASKTRAIL_COOKIE_KEYS=use-a-long-random-value
+```
+
+## Local Setup
+
+Clone the repository and install the web application dependencies:
+
+```sh
+git clone <your-fork-url>
+cd tasktrail/tasktrail
+npm ci
+```
+
+Create a local MariaDB database and user:
+
+```sh
+# On a systemd-based Linux distribution
+sudo systemctl enable --now mariadb
+sudo mariadb
+```
+
+Then run:
 
 ```sql
-CREATE DATABASE <database>;
-CREATE USER '<user>'@'localhost' IDENTIFIED BY '<password>';
-GRANT ALL PRIVILEGES ON *.* TO '<user>'@'localhost' WITH GRANT OPTION;
+CREATE DATABASE tasktrail;
+CREATE USER 'tasktrail'@'localhost' IDENTIFIED BY 'change-me';
+GRANT ALL PRIVILEGES ON tasktrail.* TO 'tasktrail'@'localhost';
+FLUSH PRIVILEGES;
 ```
 
-Make sure to grant privileges to every database (`*.*`), otherwise, the ORM won't work. To allow it to function properly, generate the Prisma client, then make the migrations:
+Create your environment file:
 
 ```sh
-$ npx prisma generate
-$ npx prisma migrate dev
+cp .env.example .env
 ```
 
-In case you don't see a message in the terminal saying `The seed command has been executed.`, run the following command:
+At minimum, ensure `DATABASE_URL` in `.env` matches the database credentials:
+
+```dotenv
+DATABASE_URL="mysql://tasktrail:change-me@localhost:3306/tasktrail"
+```
+
+Create the database tables, generate Prisma Client, and seed token types:
+
 ```sh
-$ npx prisma db seed
+npx prisma db push
+npx prisma generate
+npx prisma db seed
 ```
 
-Running the `deleteExpriedTokens.sql` script under `tasktrail/prisma/events` is not necessary, but recommended so that the tokens table doesn't flood with expired tokens.
+Start development:
 
-To run the development server, run the following command:
 ```sh
-$ npm run build:dev
+npm run dev
 ```
+
+Then open `http://localhost:8080`.
+
+`npm run build:dev` remains an alias for `npm run dev`.
+
+## Optional Services
+
+Email verification and password recovery require `MAIL_USER`, `MAIL_PASSWD`,
+`MAIL_HOST`, and `SMTP_PORT`.
+
+Google login requires `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, and
+`GOOGLE_CALLBACK_URL`. The app starts without these values, but Google login is
+disabled.
+
+The optional `prisma/events/deleteExpiredTokens.sql` event periodically removes
+expired tokens.
 
 ## People
 This project was developed by [byeejasonn](https://github.com/byeejasonn), [LDanielCG-Dev](https://github.com/LDanielCG-Dev) and [icutum](https://github.com/icutum), three spanish students of the vocational course of Web Application Development for our final degree work.

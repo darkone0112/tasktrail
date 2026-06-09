@@ -97,8 +97,8 @@ export default {
         updateLocale() {
             this.$i18n.locale = this.selectedLocale
 
-            this.$router.options.routes.forEach((route) => {
-                if (route.path != "*") {
+            this.$router.getRoutes().forEach((route) => {
+                if (route.path != "/:pathMatch(.*)*") {
                     if (route.name.toLowerCase() != "profile") {
                         route.meta.name = this.$t(`${route.name.toLowerCase()}.menuTitle`);
                     }

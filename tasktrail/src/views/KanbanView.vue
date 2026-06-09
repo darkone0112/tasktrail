@@ -15,23 +15,24 @@
 
                 draggable.kanban-cards(
                     :list="column.tasks"
+                    item-key="id"
                     group="tasks"
                     :animation="200"
                     :delay="150"
                     chosen-class="kanban__drop-preview"
                     ghost-class="hide"
                     :empty-insert-threshhold="100"
-                    :options="{ handle: '.card .label' }"
+                    handle=".card .label"
                     @end="save()"
                 )
-                    KanbanTask(
-                        v-for='task in column.tasks' :key='task.id'
-                        :task="task"
-                        :column="column"
-                        @delete="deleteTask(task)"
-                        @blurTask="save()"
-                        @selectPriority="save()"
-                    )
+                    template(v-slot:item="{ element: task }")
+                        KanbanTask(
+                            :task="task"
+                            :column="column"
+                            @delete="deleteTask(task)"
+                            @blurTask="save()"
+                            @selectPriority="save()"
+                        )
 
         KanbanColumnSkeleton(v-else)
 

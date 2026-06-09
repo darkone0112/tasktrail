@@ -1,0 +1,10 @@
+.env
+.git
+.gitignore
+Dockerfile*
+node_modules
+npm-debug.log*
+public/css
+public/js/index.js
+public/media/images/uploads/*
+!public/media/images/uploads/userpic.png

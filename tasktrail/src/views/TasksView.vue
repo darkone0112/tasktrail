@@ -10,21 +10,23 @@ div
 
     draggable.tasks(
         :list="tasksPerPage"
+        item-key="id"
         group="tasks"
         :animation="200"
-        :options="{ handle: '.card-header-icon' }"
+        handle=".card-header-icon"
         :empty-insert-threshhold="100"
         @end="save()"
     )
-        div(v-for='task in tasksPerPage' :key='task.id')
-            SimpleTask(
-                v-if="!loading"
-                :task="task"
-                @check="checkTask(task)"
-                @edit="editTask(task)"
-                @delete="del(task)"
-            )
-            SimpleTaskSkeleton(v-else)
+        template(v-slot:item="{ element: task }")
+            div
+                SimpleTask(
+                    v-if="!loading"
+                    :task="task"
+                    @check="checkTask(task)"
+                    @edit="editTask(task)"
+                    @delete="del(task)"
+                )
+                SimpleTaskSkeleton(v-else)
 
     Pagination(
         v-if="getTotalPages() > 1"

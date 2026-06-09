@@ -93,9 +93,21 @@ router.post(
 //#endregion
 
 //#region login google oauth2
-router.get("/login/google", passport.authenticate("google", { scope: ["email", "profile"] }));
+router.get("/login/google", function (req, res, next) {
+	if (!req.app.get("googleAuthEnabled")) {
+		return res.status(503).send("Google login is not configured.");
+	}
 
-router.get("/login/google/callback", passport.authenticate("google", { failureRedirect: "/login/google/failed", successRedirect: "/u/home" }));
+	return passport.authenticate("google", { scope: ["email", "profile"] })(req, res, next);
+});
+
+router.get("/login/google/callback", function (req, res, next) {
+	if (!req.app.get("googleAuthEnabled")) {
+		return res.redirect("/login/google/failed");
+	}
+
+	return passport.authenticate("google", { failureRedirect: "/login/google/failed", successRedirect: "/u/home" })(req, res, next);
+});
 
 router.get("/login/google/failed", function (req, res, next) {
 	res.send("error google");

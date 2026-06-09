@@ -3,6 +3,7 @@
 
 node_modules
 package-lock.json
+!tasktrail/package-lock.json
 
 tasktrail/public/css
 tasktrail/public/media/images/uploads/*
