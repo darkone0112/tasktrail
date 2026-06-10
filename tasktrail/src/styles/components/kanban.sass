@@ -132,6 +132,27 @@
     &:active
         cursor: grabbing
 
+.kanban-card,
+.kanban-card .card
+    cursor: grab
+
+    &:active
+        cursor: grabbing
+
+.kanban-card input,
+.kanban-card textarea,
+.kanban-card button,
+.kanban-card select,
+.kanban-card a,
+.kanban-card .is-clickable
+    cursor: initial
+
+.kanban-deadline
+    margin: .35rem 0 .65rem
+
+    .label
+        margin-bottom: .2rem
+
 .kanban-card-actions
     display: flex
     align-items: center

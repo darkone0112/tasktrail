@@ -26,6 +26,14 @@
                     :class="{ 'strikethrough': task.done }"
                 )
 
+            .kanban-deadline
+                label.label.is-size-7 {{ $t('tasks.modal.deadline') }}
+                input.input.is-small(
+                    type="date"
+                    :value="deadlineValue"
+                    @change="$emit('deadline', $event.target.value)"
+                )
+
             .kanban-action
                 .kanban-button
                     .dropdown(:class="{ 'is-active': isOpen }")
@@ -92,6 +100,11 @@ export default {
             ],
             selectedOption: "",
         };
+    },
+    computed: {
+        deadlineValue() {
+            return this.task.due_date ? String(this.task.due_date).slice(0, 10) : "";
+        },
     },
     created() {
         this.selectedOption = (this.task.priority !== null) ? this.getPriorityName(this.task.priority) : ""; 

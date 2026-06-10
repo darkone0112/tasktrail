@@ -47,7 +47,8 @@
                     chosen-class="kanban__drop-preview"
                     ghost-class="hide"
                     :empty-insert-threshhold="100"
-                    handle=".kanban-drag-handle"
+                    filter="input, textarea, button, select, option, a, .is-clickable"
+                    :prevent-on-filter="false"
                     @end="save()"
                 )
                     template(v-slot:item="{ element: task }")
@@ -60,6 +61,7 @@
                             @blurTask="save()"
                             @selectPriority="save()"
                             @complete="save()"
+                            @deadline="setDeadline(task, $event)"
                             @assign="assignTask(task, $event)"
                         )
 
@@ -157,6 +159,10 @@ export default {
             } catch (error) {
                 alertify.error(error.message)
             }
+        },
+        async setDeadline(task, deadline) {
+            task.due_date = deadline ? `${deadline}T12:00:00.000Z` : null
+            await this.save()
         },
         confirmDeleteBoard() {
             alertify.confirm(

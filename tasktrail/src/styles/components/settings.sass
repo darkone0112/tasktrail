@@ -53,6 +53,19 @@
     .table th
         color: $TT-white !important
 
+    // Task overview
+    .task-create.box, .task-overview-card, .task-overview .notification
+        color: $TT-grey-lighter !important
+        background-color: $TT-grey-darker !important
+        border-color: $TT-grey !important
+    .task-overview-card strong, .task-deadline-control
+        color: $TT-grey-lighter !important
+    .task-overview-card .tag.is-light
+        color: $TT-grey-lighter !important
+        background-color: $TT-grey !important
+    .task-overview-card .delete
+        background-color: $TT-red-dark !important
+
     // Kanban
     .card
         background-color: $TT-black !important
@@ -361,6 +374,20 @@
         background-color: $TT-red !important
     .tag.is-success
         background-color: $TT-green !important
+
+    // Task overview
+    .task-create.box, .task-overview-card, .task-overview .notification
+        color: $TT-white !important
+        background-color: $TT-black !important
+        box-shadow: inset 0 0 0px 2px $TT-white !important
+    .task-overview-card strong, .task-deadline-control
+        color: $TT-white !important
+    .task-overview-card .tag
+        color: $TT-black !important
+        background-color: $TT-white !important
+    .task-overview-card .delete
+        background-color: $TT-red !important
+
     // Color preset cards
     .palette
         box-shadow: 0px 4px 0px 0px $TT-white, inset 0 0 0px 2px $TT-white !important

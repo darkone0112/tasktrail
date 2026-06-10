@@ -20,6 +20,12 @@ const handlebarOptions = setHandlebar(".handlebars", path.join(__dirname, "../vi
 
 transporter.use("compile", hbs(handlebarOptions));
 
+function parseDeadline(value) {
+	if (!value) return null;
+	const date = /^\d{4}-\d{2}-\d{2}$/.test(value) ? new Date(`${value}T12:00:00.000Z`) : new Date(value);
+	return Number.isNaN(date.getTime()) ? null : date;
+}
+
 router.use(requireUser);
 
 router.get("/get/session", async function (req, res, next) {
@@ -349,7 +355,7 @@ router.post("/tasks/personal", async function (req, res, next) {
 				order: 0,
 				name,
 				priority: 0,
-				due_date: req.body.dueDate ? new Date(req.body.dueDate) : null,
+				due_date: parseDeadline(req.body.dueDate),
 				kanbanColumnsId: inbox.id,
 				userid: req.currentUser.id
 			}
@@ -394,7 +400,7 @@ router.put("/tasks/kanban/:userid/:id", async function (req, res, next) {
 			data.done = Boolean(req.body.done);
 		}
 		if (Object.prototype.hasOwnProperty.call(req.body, "dueDate")) {
-			data.due_date = req.body.dueDate ? new Date(req.body.dueDate) : null;
+			data.due_date = parseDeadline(req.body.dueDate);
 		}
 
 		const updatedTask = await prisma.kanbanTasks.update({
@@ -719,7 +725,7 @@ router.post("/save/kanban", async function (req, res, next) {
 							name: String(task.name || ""),
 							priority: Number(task.priority) || 0,
 							done: Boolean(task.done),
-							due_date: task.due_date ? new Date(task.due_date) : null,
+							due_date: parseDeadline(task.due_date),
 							kanbanColumnsId: columnData.id
 						}
 					});

@@ -11,7 +11,8 @@
                     required
                 )
             .control
-                input.input(type="date" v-model="newTaskDate")
+                label.label.is-size-7 {{ $t('tasks.modal.deadline') }}
+                input.input(type="date" v-model="newTaskDeadline")
             .control
                 button.button.is-success(type="submit" :disabled="!newTaskName || saving")
                     | {{ $t('tasks.modal.create') }}
@@ -40,7 +41,13 @@
                     .task-overview-meta
                         span.tag.is-light {{ task.boardName }}
                         span.tag(:style="{ backgroundColor: task.columnColor }") {{ task.columnTitle }}
-                        span.tag.is-light(v-if="task.dueDate") {{ formatDate(task.dueDate) }}
+                        label.task-deadline-control
+                            span {{ $t('tasks.modal.deadline') }}
+                            input.input.is-small(
+                                type="date"
+                                :value="deadlineValue(task)"
+                                @change="setDeadline(task, $event.target.value)"
+                            )
                         button.delete(
                             type="button"
                             :aria-label="$t('tasks.overview.delete')"
@@ -72,7 +79,13 @@
                     .task-overview-meta
                         span.tag.is-primary.is-light {{ task.boardName }}
                         span.tag(:style="{ backgroundColor: task.columnColor }") {{ task.columnTitle }}
-                        span.tag.is-light(v-if="task.dueDate") {{ formatDate(task.dueDate) }}
+                        label.task-deadline-control
+                            span {{ $t('tasks.modal.deadline') }}
+                            input.input.is-small(
+                                type="date"
+                                :value="deadlineValue(task)"
+                                @change="setDeadline(task, $event.target.value)"
+                            )
         .notification.is-light(v-else) {{ $t('tasks.overview.noAssigned') }}
 </template>
 
@@ -84,6 +97,7 @@ import {
     createPersonalKanbanTask,
     deleteKanbanTask,
     getKanbanTaskOverview,
+    updateKanbanTaskDueDate,
     updateKanbanTaskStatus
 } from '../utils/helpers'
 
@@ -94,7 +108,7 @@ export default {
             personalTasks: [],
             assignedTasks: [],
             newTaskName: '',
-            newTaskDate: '',
+            newTaskDeadline: '',
             saving: false,
         }
     },
@@ -115,9 +129,9 @@ export default {
             if (!this.newTaskName) return
             this.saving = true
             try {
-                await createPersonalKanbanTask(this.newTaskName, this.newTaskDate || null)
+                await createPersonalKanbanTask(this.newTaskName, this.newTaskDeadline || null)
                 this.newTaskName = ''
-                this.newTaskDate = ''
+                this.newTaskDeadline = ''
                 await this.loadTasks()
             } catch (error) {
                 alertify.error(error.message)
@@ -134,6 +148,15 @@ export default {
                 await this.loadTasks()
             }
         },
+        async setDeadline(task, deadline) {
+            try {
+                await updateKanbanTaskDueDate(task, deadline)
+                task.dueDate = deadline ? `${deadline}T12:00:00.000Z` : null
+            } catch (error) {
+                alertify.error(error.message)
+                await this.loadTasks()
+            }
+        },
         async removePersonalTask(task) {
             try {
                 await deleteKanbanTask(task.boardId, task)
@@ -142,8 +165,8 @@ export default {
                 alertify.error(error.message)
             }
         },
-        formatDate(date) {
-            return new Date(date).toLocaleDateString(this.$i18n.locale)
+        deadlineValue(task) {
+            return task.dueDate ? String(task.dueDate).slice(0, 10) : ''
         },
     },
     created() {

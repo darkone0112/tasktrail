@@ -35,7 +35,7 @@
                     )
 
                 .field
-                    .label {{ $t('tasks.modal.date') }}:
+                    .label {{ $t('tasks.modal.deadline') }}:
                     DatePicker(v-if="isCreate()" is-expanded v-model="newDate")
                     DatePicker(v-else is-expanded v-model="task.date")
 

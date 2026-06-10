@@ -1,6 +1,9 @@
 <template lang="pug">
 
 div
+    .calendar-summary
+        span.tag.is-primary.is-light
+            | {{ $t('calendar.deadlines', { count: calendarOptions.events.length }) }}
     FullCalendar.calendar(:options="calendarOptions")
     FullCalendar.list(:options="listOptions")
 
@@ -77,15 +80,18 @@ export default {
 
             const overview = await getKanbanTaskOverview()
             const tasks = [...overview.personal, ...overview.assigned]
-                .filter(task => !task.done && task.dueDate)
+                .filter(task => task.dueDate)
 
             tasks.forEach(task => {
                 calendar.push({
                     // Calendar properties
                     id: `${task.userid}-${task.id}`,
-                    title: task.name,
+                    title: `${task.name} · ${task.boardName}`,
                     start: task.dueDate,
                     allDay: true,
+                    backgroundColor: task.done ? '#7a7a7a' : task.columnColor,
+                    borderColor: task.done ? '#7a7a7a' : task.columnColor,
+                    classNames: task.done ? ['calendar-task-done'] : [],
                     extendedProps: {
                         task
                     }

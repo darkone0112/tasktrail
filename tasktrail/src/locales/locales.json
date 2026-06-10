@@ -54,7 +54,8 @@
                 "createTask": "Create task",
                 "editTask": "Edit task",
                 "name": "Name",
-                "date": "Date",
+                "date": "Deadline",
+                "deadline": "Deadline",
                 "cancel": "Cancel",
                 "create": "Create",
                 "placeholder": "Task name",
@@ -124,7 +125,8 @@
             "menuTitle": "Calendar",
             "title": "📆 Calendar",
             "desc": "Your organization taken to another level.",
-            "group": "General"
+            "group": "General",
+            "deadlines": "{count} scheduled deadlines"
         },
         "settings": {
             "menuTitle": "Settings",
@@ -248,7 +250,8 @@
                 "createTask": "Crear tarea",
                 "editTask": "Editar tarea",
                 "name": "Nombre",
-                "date": "Fecha",
+                "date": "Fecha límite",
+                "deadline": "Fecha límite",
                 "cancel": "Cancelar",
                 "create": "Crear",
                 "placeholder": "Nombre de la tarea",
@@ -318,7 +321,8 @@
             "menuTitle": "Calendario",
             "title": "📆 Calendario",
             "desc": "Tu organización llevada a otro nivel.",
-            "group": "General"
+            "group": "General",
+            "deadlines": "{count} fechas límite programadas"
         },
         "settings": {
             "menuTitle": "Ajustes",

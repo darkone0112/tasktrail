@@ -98,6 +98,9 @@
     .task-create
         max-width: 70rem
 
+        .control.is-expanded
+            align-self: flex-end
+
     &-list
         display: grid
         gap: .75rem
@@ -127,6 +130,15 @@
     &-meta
         flex-wrap: wrap
         justify-content: flex-end
+
+.task-deadline-control
+    display: flex
+    align-items: center
+    gap: .4rem
+    font-size: .75rem
+
+    .input
+        width: auto
 
 .task-section
     margin-top: 2rem
