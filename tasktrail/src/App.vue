@@ -23,7 +23,7 @@ div
                                     i.fas(:class="route.meta.classname")
                                 span.i-text {{ route.meta.name }}
 
-        .content.container
+        main.content.app-content
             h1.view-title {{ this.$route.meta.title }}
             p.view-desc {{ this.$route.meta.desc }}
 
@@ -31,17 +31,12 @@ div
                 transition(name="fade" mode="out-in")
                     component(:is="Component")
 
-    .navbar.notification.is-warning.is-fixed-bottom(v-if="!user.verified")
-        | {{ this.$t('notifications.emailVerification1') }}&nbsp;
-        a(@click="sendVerifyMail()") {{ this.$t('notifications.emailVerification2') }}
-        | &nbsp;{{ this.$t('notifications.emailVerification3') }}
-
 </template>
 
 <script>
 import alertify from 'alertifyjs';
-import { alertifysettings, sendVerificationMail } from './utils/helpers';
-import { routes, user } from './router/index'
+import { alertifysettings } from './utils/helpers';
+import { routes } from './router/index'
 
 export default {
     name: 'App',
@@ -49,29 +44,16 @@ export default {
         return {
             // Return the routes that contain metadata to display the navbar
             routes: routes.filter(route => { return route.meta }),
-            user: {
-                verified: true
-            },
             menuActive: true,
         }
     },
     methods: {
         toggleMenu() {
             this.menuActive = !this.menuActive
-        },
-        async sendVerifyMail() {
-            alertify
-                .notify(this.$t('alertify.sentEmail'), 'success')
-                .dismissOthers()
-
-            await sendVerificationMail()
         }
     },
     async created() {
         alertify.defaults = alertifysettings;
-    },
-    async mounted() {
-        this.user = user;
     }
 };
 </script>

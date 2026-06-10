@@ -173,6 +173,42 @@ export async function deleteKanbanTask(boardId, task) {
 	);
 }
 
+export async function assignKanbanTask(task, assignedUserId) {
+	return apiRequest(
+		`/api/kanban/tasks/${task.userid}/${task.id}/assignee`,
+		FETCH_OPTIONS(
+			FETCH_METHODS.PUT,
+			CONTENT_TYPES.JSON,
+			JSON.stringify({ assignedUserId: assignedUserId || null })
+		)
+	);
+}
+
+export async function getKanbanTaskOverview() {
+	return apiRequest("/api/tasks/kanban-overview", FETCH_OPTIONS(FETCH_METHODS.GET, CONTENT_TYPES.JSON));
+}
+
+export async function createPersonalKanbanTask(name, dueDate = null) {
+	return apiRequest(
+		"/api/tasks/personal",
+		FETCH_OPTIONS(FETCH_METHODS.POST, CONTENT_TYPES.JSON, JSON.stringify({ name, dueDate }))
+	);
+}
+
+export async function updateKanbanTaskStatus(task, done) {
+	return apiRequest(
+		`/api/tasks/kanban/${task.userid}/${task.id}`,
+		FETCH_OPTIONS(FETCH_METHODS.PUT, CONTENT_TYPES.JSON, JSON.stringify({ done }))
+	);
+}
+
+export async function updateKanbanTaskDueDate(task, dueDate) {
+	return apiRequest(
+		`/api/tasks/kanban/${task.userid}/${task.id}`,
+		FETCH_OPTIONS(FETCH_METHODS.PUT, CONTENT_TYPES.JSON, JSON.stringify({ dueDate }))
+	);
+}
+
 export async function saveLocale(locale) {
 	return apiRequest(
 		"/api/settings/locale",

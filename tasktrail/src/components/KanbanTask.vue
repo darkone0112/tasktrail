@@ -4,10 +4,15 @@
     .kanban-card
         span.card
             .kanban-action
-                label
+                .kanban-drag-handle
+                    span.icon
+                        i.fas.fa-grip-lines
                     strong {{ `#${task.id}` }}
-                span.icon.is-clickable
-                    i.fas.fa-xmark(@click="$emit('delete', task)")
+                .kanban-card-actions
+                    label.checkbox(:title="$t('kanban.assignment.completed')")
+                        input(type="checkbox" v-model="task.done" @change="$emit('complete')")
+                    span.icon.is-clickable
+                        i.fas.fa-xmark(@click="$emit('delete', task)")
 
             label.label(@dblclick="focus")
                 textarea.textarea.kanban-text(
@@ -18,6 +23,7 @@
                     ref="input"
                     :placeholder="$t('kanban.placeholder')"
                     rows="3"
+                    :class="{ 'strikethrough': task.done }"
                 )
 
             .kanban-action
@@ -32,6 +38,15 @@
                             .dropdown-content(:style="{ backgroundColor: column.color }")
                                 a(v-for='priority, index in priorities' :key='index' :class="{ 'dropdown-item': true, 'is-active': task.priority === index }" @click='selectOption(index)')
                                     | {{ priority.name }}
+                .kanban-assignee
+                    .select.is-small(v-if="canAssign")
+                        select(:value="task.assigned_user_id || ''" @change="$emit('assign', $event.target.value)")
+                            option(value="") {{ $t('kanban.assignment.unassigned') }}
+                            option(v-for="member in users" :key="member.id" :value="member.id") {{ member.username }}
+                    span.tag.is-light(v-else-if="task.assignee")
+                        span.icon
+                            i.fas.fa-user
+                        span {{ task.assignee.username }}
 </template>
 <script>
 export default {
@@ -49,6 +64,14 @@ export default {
             type: Boolean,
             required: false,
             default: false,
+        },
+        canAssign: {
+            type: Boolean,
+            default: false,
+        },
+        users: {
+            type: Array,
+            default: () => [],
         },
     },
     data() {
@@ -75,6 +98,10 @@ export default {
 
         document.addEventListener("click", this.handleOutsideClick);
         document.addEventListener("mousedown", this.handleOutsideClick);
+    },
+    beforeUnmount() {
+        document.removeEventListener("click", this.handleOutsideClick);
+        document.removeEventListener("mousedown", this.handleOutsideClick);
     },
     methods: {
         focus() {

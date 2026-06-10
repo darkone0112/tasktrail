@@ -1,193 +1,157 @@
 <template lang="pug">
-
-div
-    .buttons
-        SimpleModal(mode="create" @add="add")
-
-        .select(v-if="tasks.length > 0")
-            select(v-model='taskFilter' @change="setFilter(taskFilter)")
-                option(v-for='filter in ["all", "undone", "done"]' :value='filter' :key="filter") {{ $t(`tasks.buttons.${filter}`) }}
-
-    draggable.tasks(
-        :list="tasksPerPage"
-        item-key="id"
-        group="tasks"
-        :animation="200"
-        handle=".card-header-icon"
-        :empty-insert-threshhold="100"
-        @end="save()"
-    )
-        template(v-slot:item="{ element: task }")
-            div
-                SimpleTask(
-                    v-if="!loading"
-                    :task="task"
-                    @check="checkTask(task)"
-                    @edit="editTask(task)"
-                    @delete="del(task)"
+.task-overview
+    form.task-create.box(@submit.prevent="createTask")
+        h2.title.is-5 {{ $t('tasks.overview.createPersonal') }}
+        .field.is-grouped.is-grouped-multiline
+            .control.is-expanded
+                input.input(
+                    v-model.trim="newTaskName"
+                    :placeholder="$t('tasks.modal.placeholder')"
+                    maxlength="191"
+                    required
                 )
-                SimpleTaskSkeleton(v-else)
+            .control
+                input.input(type="date" v-model="newTaskDate")
+            .control
+                button.button.is-success(type="submit" :disabled="!newTaskName || saving")
+                    | {{ $t('tasks.modal.create') }}
 
-    Pagination(
-        v-if="getTotalPages() > 1"
-        :total="tasks.length"
-        :total-pages="getTotalPages()"
-        :per-page="resultsPerPage"
-        :current-page="currentPage"
-        :max-visible-buttons="getTotalPages() > 2 ? maxPaginationButtons : minPaginationButtons"
-        @pagechanged="onPageChange"
-    )
+    .task-section
+        h2.title.is-5
+            span.icon.mr-2
+                i.fas.fa-user
+            | {{ $t('tasks.overview.personal') }}
+        p.mb-4 {{ $t('tasks.overview.personalDescription') }}
+        .task-overview-list(v-if="personalTasks.length")
+            article.card.task-overview-card(
+                v-for="task in personalTasks"
+                :key="taskKey(task)"
+                :style="{ borderLeft: `5px solid ${task.columnColor}` }"
+            )
+                .card-content
+                    .task-overview-main
+                        label.checkbox
+                            input(
+                                type="checkbox"
+                                :checked="task.done"
+                                @change="setDone(task, $event.target.checked)"
+                            )
+                        strong(:class="{ strikethrough: task.done }") {{ task.name }}
+                    .task-overview-meta
+                        span.tag.is-light {{ task.boardName }}
+                        span.tag(:style="{ backgroundColor: task.columnColor }") {{ task.columnTitle }}
+                        span.tag.is-light(v-if="task.dueDate") {{ formatDate(task.dueDate) }}
+                        button.delete(
+                            type="button"
+                            :aria-label="$t('tasks.overview.delete')"
+                            @click="removePersonalTask(task)"
+                        )
+        .notification.is-light(v-else) {{ $t('tasks.overview.noPersonal') }}
 
+    .task-section
+        h2.title.is-5
+            span.icon.mr-2
+                i.fas.fa-user-check
+            | {{ $t('tasks.overview.assigned') }}
+        p.mb-4 {{ $t('tasks.overview.assignedDescription') }}
+        .task-overview-list(v-if="assignedTasks.length")
+            article.card.task-overview-card(
+                v-for="task in assignedTasks"
+                :key="taskKey(task)"
+                :style="{ borderLeft: `5px solid ${task.columnColor}` }"
+            )
+                .card-content
+                    .task-overview-main
+                        label.checkbox
+                            input(
+                                type="checkbox"
+                                :checked="task.done"
+                                @change="setDone(task, $event.target.checked)"
+                            )
+                        strong(:class="{ strikethrough: task.done }") {{ task.name }}
+                    .task-overview-meta
+                        span.tag.is-primary.is-light {{ task.boardName }}
+                        span.tag(:style="{ backgroundColor: task.columnColor }") {{ task.columnTitle }}
+                        span.tag.is-light(v-if="task.dueDate") {{ formatDate(task.dueDate) }}
+        .notification.is-light(v-else) {{ $t('tasks.overview.noAssigned') }}
 </template>
 
 <script>
 import alertify from 'alertifyjs'
-import draggable from 'vuedraggable'
-import { getTasks, addTask, deleteTask, saveTasks, getPaginatedTasks, alertifysettings, applyTheme, FILTERS } from '../utils/helpers'
-
-import SimpleTask from '../components/SimpleTask.vue'
-import SimpleModal from '../components/modals/SimpleModal.vue'
-import SimpleTaskSkeleton from '../components/skeletons/SimpleTaskSkeleton.vue'
-import Pagination from '../components/Pagination.vue'
+import {
+    alertifysettings,
+    applyTheme,
+    createPersonalKanbanTask,
+    deleteKanbanTask,
+    getKanbanTaskOverview,
+    updateKanbanTaskStatus
+} from '../utils/helpers'
 
 export default {
     name: 'Tasks',
-    components: {
-        SimpleTask,
-        SimpleModal,
-        SimpleTaskSkeleton,
-        Pagination,
-        draggable,
-    },
     data() {
         return {
-            loading: true,
-
-            tasks: [],
-            tasksPerPage: [],
-            taskFilter: localStorage.taskFilter || 'all',
-
-            minPaginationButtons: 2,
-            maxPaginationButtons: 3,
-
-            currentPage: Number(localStorage.currentPage) || 1,
-            resultsPerPage: 5,
+            personalTasks: [],
+            assignedTasks: [],
+            newTaskName: '',
+            newTaskDate: '',
+            saving: false,
         }
     },
     methods: {
-        async add(name, date) {
-            await addTask(name, date)
-            this.tasks = await getTasks()
-
-            if (this.currentPage !== 1)
-                this.currentPage = 1
-
-            this.tasksPerPage = await this.getTasksPerPage()
-
-            await this.save()
+        taskKey(task) {
+            return `${task.userid}-${task.id}`
         },
-        async del(task) {
-            await deleteTask(task)
-            this.tasks = await getTasks()
-
-            // Update tasks to remove the one we just deleted
-            this.tasksPerPage = await this.getTasksPerPage()
-
-            // In case there aren't any more tasks remaining in the page
-            if (this.tasksPerPage.length === 0 && this.currentPage > 1) {
-                // Go to previous page and retrieve the tasks from that page
-                this.currentPage--
-                this.tasksPerPage = await this.getTasksPerPage()
-            }
-
-        },
-        async save() {
-            this.tasks.splice(this.tasksToSkip, this.resultsPerPage, ...this.tasksPerPage)
-            await saveTasks(this.tasks)
-            this.tasks = await getTasks()
-        },
-        async editTask(task) {
-            const i = this.tasks.findIndex(t => t.id === task.id)
-
-            this.tasks[i] = task
-            this.tasks[i].edit = !this.tasks[i].edit
-
-            await this.save()
-        },
-        async checkTask(task) {
-            const i = this.tasksPerPage.findIndex(t => t.id === task.id)
-
-            this.tasksPerPage[i].done = !this.tasksPerPage[i].done
-
-            await this.save()
-        },
-        async setFilter(filter) {
-            if (!FILTERS.hasOwnProperty(filter)) return
-
-            this.taskFilter = filter
-            localStorage.taskFilter = filter
-
-            this.skeletonSpawner()
-            this.tasksPerPage = await this.getTasksPerPage()
-
-            if (this.tasksPerPage.length === 0) {
-                await this.onPageChange(1)
+        async loadTasks() {
+            try {
+                const overview = await getKanbanTaskOverview()
+                this.personalTasks = overview.personal
+                this.assignedTasks = overview.assigned
+            } catch (error) {
+                alertify.error(error.message)
             }
         },
-        async onPageChange(page) {
-            this.currentPage = page
-            localStorage.currentPage = Number(page)
-
-            this.skeletonSpawner()
-            this.tasksPerPage = await this.getTasksPerPage()
-        },
-        getTotalPages() {
-            return Math.ceil(this.getFilteredTasks().length / this.resultsPerPage)
-        },
-        async getTasksPerPage(skip = this.tasksToSkip) {
-            return await getPaginatedTasks(skip, this.resultsPerPage, this.taskFilter)
-                .then(result => {
-                    this.loading = false
-
-                    return result
-                })
-        },
-        getFilteredTasks() {
-            const filter = FILTERS[this.taskFilter]
-
-            if (filter === undefined)
-                return this.tasks
-
-            return this.tasks.filter(task => task.done === filter)
-        },
-        skeletonSpawner() {
-            /**
-             * Always generate resultsPerPage number of skeleton cards
-             * so when you navigate between pages you don't get less
-             */
-            this.loading = true
-
-            for (let i = 0; i < this.resultsPerPage; i++) {
-                this.tasksPerPage[i] = {}
+        async createTask() {
+            if (!this.newTaskName) return
+            this.saving = true
+            try {
+                await createPersonalKanbanTask(this.newTaskName, this.newTaskDate || null)
+                this.newTaskName = ''
+                this.newTaskDate = ''
+                await this.loadTasks()
+            } catch (error) {
+                alertify.error(error.message)
+            } finally {
+                this.saving = false
             }
-        }
-    },
-    async mounted() {
-        await getTasks().then(async (tasks) => {
-            this.tasks = tasks
-
-            this.skeletonSpawner()
-            this.tasksPerPage = await this.getTasksPerPage()
-        })
-    },
-    computed: {
-        tasksToSkip() {
-            return (this.currentPage - 1) * this.resultsPerPage
-        }
+        },
+        async setDone(task, done) {
+            try {
+                await updateKanbanTaskStatus(task, done)
+                task.done = done
+            } catch (error) {
+                alertify.error(error.message)
+                await this.loadTasks()
+            }
+        },
+        async removePersonalTask(task) {
+            try {
+                await deleteKanbanTask(task.boardId, task)
+                await this.loadTasks()
+            } catch (error) {
+                alertify.error(error.message)
+            }
+        },
+        formatDate(date) {
+            return new Date(date).toLocaleDateString(this.$i18n.locale)
+        },
     },
     created() {
-        alertify.defaults = alertifysettings;
-        applyTheme();
-    }
+        alertify.defaults = alertifysettings
+        applyTheme()
+    },
+    mounted() {
+        this.loadTasks()
+    },
 }
 </script>

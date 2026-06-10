@@ -43,19 +43,24 @@
                     group="tasks"
                     :animation="200"
                     :delay="150"
+                    :delay-on-touch-only="true"
                     chosen-class="kanban__drop-preview"
                     ghost-class="hide"
                     :empty-insert-threshhold="100"
-                    handle=".card .label"
+                    handle=".kanban-drag-handle"
                     @end="save()"
                 )
                     template(v-slot:item="{ element: task }")
                         KanbanTask(
                             :task="task"
                             :column="column"
+                            :can-assign="isAdmin && selectedBoard.visibility !== 'PERSONAL'"
+                            :users="assignmentUsers"
                             @delete="deleteTask(task)"
                             @blurTask="save()"
                             @selectPriority="save()"
+                            @complete="save()"
+                            @assign="assignTask(task, $event)"
                         )
 
         KanbanColumnSkeleton(v-else-if="loading")
@@ -69,14 +74,17 @@ import draggable from 'vuedraggable'
 import {
     alertifysettings,
     applyTheme,
+    assignKanbanTask,
     createKanbanBoard,
     deleteKanbanBoard,
     deleteKanbanColumn,
     deleteKanbanTask,
     getKanban,
     getKanbanBoards,
+    getUsers,
     saveBoardKanban
 } from '../utils/helpers'
+import { user } from '../router'
 
 import KanbanTask from '../components/KanbanTask.vue'
 import KanbanColumnSkeleton from '../components/skeletons/KanbanColumnSkeleton.vue'
@@ -99,7 +107,9 @@ export default {
             boards: [],
             selectedBoardId: null,
             newBoardName: "",
-            newBoardVisibility: "TEAM"
+            newBoardVisibility: "TEAM",
+            assignmentUsers: [],
+            isAdmin: user?.role === "ADMIN"
         }
     },
     computed: {
@@ -132,6 +142,18 @@ export default {
                 this.newBoardName = ""
                 await this.loadBoards(board.id)
                 await this.loadSelectedBoard()
+            } catch (error) {
+                alertify.error(error.message)
+            }
+        },
+        async loadAssignmentUsers() {
+            if (!this.isAdmin) return
+            this.assignmentUsers = await getUsers()
+        },
+        async assignTask(task, assignedUserId) {
+            try {
+                await assignKanbanTask(task, assignedUserId)
+                await this.getKanban()
             } catch (error) {
                 alertify.error(error.message)
             }
@@ -184,7 +206,7 @@ export default {
         applyTheme()
     }, 
     async mounted() {
-        await this.loadBoards()
+        await Promise.all([this.loadBoards(), this.loadAssignmentUsers()])
         await this.getKanban().then(() => {
             this.loading = false
         })

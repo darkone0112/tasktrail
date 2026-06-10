@@ -23,13 +23,13 @@
         tbody
             tr(v-for="deadline in deadlines")
                 th {{ deadline.name }}
-                td {{ new Date(deadline.date).toLocaleDateString($t('home.dashboard.dateLang'), { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }) }}
+                td {{ new Date(deadline.dueDate).toLocaleDateString($t('home.dashboard.dateLang'), { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }) }}
 </template>
 
 <script>
 import alertify from 'alertifyjs'
 import { routes, user } from '../router/index'
-import { getTasks, alertifysettings, applyTheme } from '../utils/helpers'
+import { getKanbanTaskOverview, alertifysettings, applyTheme } from '../utils/helpers'
 
 export default {
     name: 'Home',
@@ -88,9 +88,11 @@ export default {
     methods: {
         async getDeadlines() {
             const MAX_TASKS = 5
-            const tasks = await getTasks(MAX_TASKS)
-
-            return tasks
+            const overview = await getKanbanTaskOverview()
+            return [...overview.personal, ...overview.assigned]
+                .filter(task => !task.done && task.dueDate)
+                .sort((a, b) => new Date(a.dueDate) - new Date(b.dueDate))
+                .slice(0, MAX_TASKS)
         }
     },
 };

@@ -112,6 +112,30 @@
 .kanban-action
     display: flex
     justify-content: space-between
+    align-items: center
+    gap: .5rem
+
+.kanban-assignee
+    min-width: 0
+
+    .select select
+        max-width: 9rem
+
+.kanban-drag-handle
+    display: flex
+    align-items: center
+    flex: 1
+    gap: .35rem
+    cursor: grab
+    user-select: none
+
+    &:active
+        cursor: grabbing
+
+.kanban-card-actions
+    display: flex
+    align-items: center
+    gap: .4rem
 
 .dropdown-trigger button
     width: fit-content !important

@@ -250,6 +250,167 @@ router.post("/delete/task", async function (req, res, next) {
 
 	res.json(errors);
 });
+
+router.get("/tasks/kanban-overview", async function (req, res, next) {
+	try {
+		await ensureDefaultBoards(req.currentUser);
+
+		const includeContext = {
+			KanbanColumns: {
+				include: {
+					Board: {
+						select: {
+							id: true,
+							name: true,
+							visibility: true
+						}
+					}
+				}
+			}
+		};
+
+		const [personalTasks, assignedTasks] = await Promise.all([
+			prisma.kanbanTasks.findMany({
+				where: {
+					KanbanColumns: {
+						is: {
+							Board: {
+								is: {
+									owner_id: req.currentUser.id,
+									visibility: "PERSONAL"
+								}
+							}
+						}
+					}
+				},
+				orderBy: [{ kanbanColumnsId: "asc" }, { order: "asc" }],
+				include: includeContext
+			}),
+			prisma.kanbanTasks.findMany({
+				where: {
+					assigned_user_id: req.currentUser.id,
+					KanbanColumns: {
+						is: {
+							Board: {
+								is: {
+									visibility: { not: "PERSONAL" }
+								}
+							}
+						}
+					}
+				},
+				orderBy: [{ kanbanColumnsId: "asc" }, { order: "asc" }],
+				include: includeContext
+			})
+		]);
+
+		const serializeTask = task => ({
+			id: task.id,
+			userid: task.userid,
+			name: task.name,
+			priority: task.priority,
+			done: task.done,
+			dueDate: task.due_date,
+			columnId: task.kanbanColumnsId,
+			columnTitle: task.KanbanColumns.title,
+			columnColor: task.KanbanColumns.color,
+			boardId: task.KanbanColumns.Board.id,
+			boardName: task.KanbanColumns.Board.name
+		});
+
+		return res.json({
+			personal: personalTasks.map(serializeTask),
+			assigned: assignedTasks.map(serializeTask)
+		});
+	} catch (error) {
+		return next(error);
+	}
+});
+
+router.post("/tasks/personal", async function (req, res, next) {
+	try {
+		const name = String(req.body.name || "").trim();
+		if (name.length < 1 || name.length > 191) {
+			return res.status(400).json({ error: "Task name must be between 1 and 191 characters" });
+		}
+
+		const { personalBoard } = await ensureDefaultBoards(req.currentUser);
+		const inbox = await ensurePersonalInbox(req.currentUser, personalBoard);
+
+		const maxTask = await prisma.kanbanTasks.findFirst({
+			where: { userid: req.currentUser.id },
+			select: { id: true },
+			orderBy: { id: "desc" }
+		});
+
+		const task = await prisma.kanbanTasks.create({
+			data: {
+				id: maxTask == null ? 0 : maxTask.id + 1,
+				order: 0,
+				name,
+				priority: 0,
+				due_date: req.body.dueDate ? new Date(req.body.dueDate) : null,
+				kanbanColumnsId: inbox.id,
+				userid: req.currentUser.id
+			}
+		});
+
+		return res.status(201).json(task);
+	} catch (error) {
+		return next(error);
+	}
+});
+
+router.put("/tasks/kanban/:userid/:id", async function (req, res, next) {
+	try {
+		const task = await prisma.kanbanTasks.findUnique({
+			where: {
+				id_userid: {
+					id: Number(req.params.id),
+					userid: Number(req.params.userid)
+				}
+			},
+			include: {
+				KanbanColumns: {
+					include: { Board: true }
+				}
+			}
+		});
+		if (!task?.KanbanColumns?.Board) {
+			return res.status(404).json({ error: "Task not found" });
+		}
+
+		const board = task.KanbanColumns.Board;
+		const canUpdate =
+			req.currentUser.role === "ADMIN" ||
+			task.assigned_user_id === req.currentUser.id ||
+			(board.visibility === "PERSONAL" && board.owner_id === req.currentUser.id);
+		if (!canUpdate) {
+			return res.status(403).json({ error: "You cannot update this task" });
+		}
+
+		const data = {};
+		if (Object.prototype.hasOwnProperty.call(req.body, "done")) {
+			data.done = Boolean(req.body.done);
+		}
+		if (Object.prototype.hasOwnProperty.call(req.body, "dueDate")) {
+			data.due_date = req.body.dueDate ? new Date(req.body.dueDate) : null;
+		}
+
+		const updatedTask = await prisma.kanbanTasks.update({
+			where: {
+				id_userid: {
+					id: task.id,
+					userid: task.userid
+				}
+			},
+			data
+		});
+		return res.json(updatedTask);
+	} catch (error) {
+		return next(error);
+	}
+});
 //#endregion
 
 router.post("/verify/mail/", async function (req, res, next) {
@@ -322,12 +483,56 @@ async function ensureDefaultBoards(user) {
 		data: { board_id: personalBoard.id }
 	});
 
-	const teamBoardCount = await prisma.kanbanBoards.count({
-		where: { visibility: "TEAM" }
+	if (!user.legacy_tasks_migrated) {
+		const inbox = await ensurePersonalInbox(user, personalBoard);
+		const legacyTasks = await prisma.tasks.findMany({
+			where: { user_id: user.id },
+			orderBy: { order: "asc" }
+		});
+		const migratedTasks = await prisma.kanbanTasks.findMany({
+			where: {
+				legacy_task_id: { in: legacyTasks.map(task => task.id) }
+			},
+			select: { legacy_task_id: true }
+		});
+		const migratedIds = new Set(migratedTasks.map(task => task.legacy_task_id));
+		let maxTask = await prisma.kanbanTasks.findFirst({
+			where: { userid: user.id },
+			select: { id: true },
+			orderBy: { id: "desc" }
+		});
+		let nextTaskId = maxTask == null ? 0 : maxTask.id + 1;
+
+		for (const legacyTask of legacyTasks) {
+			if (migratedIds.has(legacyTask.id)) continue;
+			await prisma.kanbanTasks.create({
+				data: {
+					id: nextTaskId++,
+					order: legacyTask.order,
+					name: legacyTask.name,
+					priority: 0,
+					done: legacyTask.done,
+					due_date: legacyTask.date,
+					legacy_task_id: legacyTask.id,
+					kanbanColumnsId: inbox.id,
+					userid: user.id
+				}
+			});
+		}
+
+		await prisma.users.update({
+			where: { id: user.id },
+			data: { legacy_tasks_migrated: true }
+		});
+	}
+
+	let teamBoard = await prisma.kanbanBoards.findFirst({
+		where: { visibility: "TEAM" },
+		orderBy: { id: "asc" }
 	});
 
-	if (teamBoardCount === 0) {
-		await prisma.kanbanBoards.create({
+	if (!teamBoard) {
+		teamBoard = await prisma.kanbanBoards.create({
 			data: {
 				name: "Team board",
 				visibility: "TEAM",
@@ -335,6 +540,29 @@ async function ensureDefaultBoards(user) {
 			}
 		});
 	}
+
+	return { personalBoard, teamBoard };
+}
+
+async function ensurePersonalInbox(user, personalBoard) {
+	let inbox = await prisma.kanbanColumns.findFirst({
+		where: { board_id: personalBoard.id },
+		orderBy: { order: "asc" }
+	});
+
+	if (!inbox) {
+		inbox = await prisma.kanbanColumns.create({
+			data: {
+				order: 0,
+				title: "Inbox",
+				color: "#bae1ff",
+				userid: user.id,
+				board_id: personalBoard.id
+			}
+		});
+	}
+
+	return inbox;
 }
 
 router.get("/kanban/boards", async function (req, res, next) {
@@ -489,6 +717,8 @@ router.post("/save/kanban", async function (req, res, next) {
 							order: taskIndex,
 							name: String(task.name || ""),
 							priority: Number(task.priority) || 0,
+							done: Boolean(task.done),
+							due_date: task.due_date ? new Date(task.due_date) : null,
 							kanbanColumnsId: columnData.id
 						}
 					});
@@ -512,7 +742,15 @@ router.get("/get/kanban", async function (req, res, next) {
 			orderBy: { order: "asc" },
 			include: {
 				KanbanTasks: {
-					orderBy: { order: "asc" }
+					orderBy: { order: "asc" },
+					include: {
+						Assignee: {
+							select: {
+								id: true,
+								username: true
+							}
+						}
+					}
 				}
 			}
 		});
@@ -520,7 +758,11 @@ router.get("/get/kanban", async function (req, res, next) {
 		return res.json(
 			columns.map(column => ({
 				...column,
-				tasks: column.KanbanTasks,
+				tasks: column.KanbanTasks.map(task => ({
+					...task,
+					assignee: task.Assignee,
+					Assignee: undefined
+				})),
 				KanbanTasks: undefined
 			}))
 		);
@@ -614,6 +856,68 @@ router.post("/delete/kanban-task", async function (req, res, next) {
 			}
 		});
 		return res.json({ query: false });
+	} catch (error) {
+		return next(error);
+	}
+});
+
+router.put("/kanban/tasks/:userid/:id/assignee", requireAdmin, async function (req, res, next) {
+	try {
+		const taskId = Number(req.params.id);
+		const taskOwnerId = Number(req.params.userid);
+		const assignedUserId = req.body.assignedUserId == null ? null : Number(req.body.assignedUserId);
+
+		const task = await prisma.kanbanTasks.findUnique({
+			where: {
+				id_userid: {
+					id: taskId,
+					userid: taskOwnerId
+				}
+			},
+			include: { KanbanColumns: true }
+		});
+		if (!task?.KanbanColumns?.board_id) {
+			return res.status(404).json({ error: "Task not found" });
+		}
+
+		const board = await getAccessibleBoard(req.currentUser, task.KanbanColumns.board_id, true);
+		if (!board) return res.status(404).json({ error: "Board not found" });
+		if (board.visibility === "PERSONAL") {
+			return res.status(400).json({ error: "Personal tasks cannot be assigned" });
+		}
+
+		if (assignedUserId !== null) {
+			const assignee = await prisma.users.findFirst({
+				where: {
+					id: assignedUserId,
+					disabled: false
+				}
+			});
+			if (!assignee) return res.status(404).json({ error: "Assignee not found" });
+		}
+
+		const updatedTask = await prisma.kanbanTasks.update({
+			where: {
+				id_userid: {
+					id: taskId,
+					userid: taskOwnerId
+				}
+			},
+			data: { assigned_user_id: assignedUserId },
+			include: {
+				Assignee: {
+					select: {
+						id: true,
+						username: true
+					}
+				}
+			}
+		});
+
+		return res.json({
+			assignedUserId: updatedTask.assigned_user_id,
+			assignee: updatedTask.Assignee
+		});
 	} catch (error) {
 		return next(error);
 	}

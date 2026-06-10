@@ -67,6 +67,16 @@
             "status": {
                 "done": "Done",
                 "toDo": "To do"
+            },
+            "overview": {
+                "createPersonal": "Create a personal task",
+                "personal": "Personal tasks",
+                "personalDescription": "Cards from your personal boards.",
+                "assigned": "Assigned to me",
+                "assignedDescription": "Cards assigned to you from collaborative boards.",
+                "noPersonal": "You have no personal tasks.",
+                "noAssigned": "No collaborative tasks are assigned to you.",
+                "delete": "Delete task"
             }
         },
         "kanban": {
@@ -78,6 +88,10 @@
                 "low": "Low",
                 "normal": "Normal",
                 "high": "High"
+            },
+            "assignment": {
+                "unassigned": "Unassigned",
+                "completed": "Completed"
             },
             "modal": {
                 "createColumn": "Create column",
@@ -247,6 +261,16 @@
             "status": {
                 "done": "Terminada",
                 "toDo": "Por hacer"
+            },
+            "overview": {
+                "createPersonal": "Crear una tarea personal",
+                "personal": "Tareas personales",
+                "personalDescription": "Tarjetas de tus tableros personales.",
+                "assigned": "Asignadas a mí",
+                "assignedDescription": "Tarjetas de tableros colaborativos que tienes asignadas.",
+                "noPersonal": "No tienes tareas personales.",
+                "noAssigned": "No tienes tareas colaborativas asignadas.",
+                "delete": "Eliminar tarea"
             }
         },
         "kanban": {
@@ -258,6 +282,10 @@
                 "low": "Baja",
                 "normal": "Normal",
                 "high": "Alta"
+            },
+            "assignment": {
+                "unassigned": "Sin asignar",
+                "completed": "Completada"
             },
             "modal": {
                 "createColumn": "Crear columna",

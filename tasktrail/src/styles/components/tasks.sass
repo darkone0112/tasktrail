@@ -91,3 +91,50 @@
 
         &[disabled]
             cursor: default !important
+
+.task-overview
+    max-width: none
+
+    .task-create
+        max-width: 70rem
+
+    &-list
+        display: grid
+        gap: .75rem
+
+    &-card
+        width: 100%
+
+        .card-content
+            display: flex
+            align-items: center
+            justify-content: space-between
+            gap: 1rem
+            padding: 1rem 1.25rem
+
+    &-main,
+    &-meta
+        display: flex
+        align-items: center
+        gap: .75rem
+
+    &-main
+        min-width: 0
+
+        strong
+            overflow-wrap: anywhere
+
+    &-meta
+        flex-wrap: wrap
+        justify-content: flex-end
+
+.task-section
+    margin-top: 2rem
+
+@include sm-breakpoint
+    .task-overview-card .card-content
+        align-items: flex-start
+        flex-direction: column
+
+    .task-overview-meta
+        justify-content: flex-start

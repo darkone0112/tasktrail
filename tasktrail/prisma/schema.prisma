@@ -30,11 +30,13 @@ model Users {
     disabled    Boolean  @default(dbgenerated("false"))
     role        UserRole @default(MEMBER)
     locale      String   @default("en") @db.VarChar(5)
+    legacy_tasks_migrated Boolean @default(false)
 
     Tasks       Tasks[]
     Tokens      Tokens[]
     ownedBoards KanbanBoards[] @relation("BoardOwner")
     boardAccess KanbanBoardAccess[]
+    assignedKanbanTasks   KanbanTasks[] @relation("TaskAssignee")
 }
 
 model Tokens {
@@ -49,16 +51,22 @@ model Tokens {
 }
 
 model KanbanTasks {
-    id              Int
-    order           Int
-    name            String
-    priority        Int
-    kanbanColumnsId Int
-    userid          Int
+    id               Int
+    order            Int
+    name             String
+    priority         Int
+    done             Boolean   @default(false)
+    due_date         DateTime?  @db.DateTime(0)
+    legacy_task_id   Int?       @unique
+    kanbanColumnsId  Int
+    userid           Int
+    assigned_user_id Int?
 
-    KanbanColumns   KanbanColumns? @relation(fields: [kanbanColumnsId], references: [id], onDelete: Cascade)
+    KanbanColumns KanbanColumns? @relation(fields: [kanbanColumnsId], references: [id], onDelete: Cascade)
+    Assignee       Users?         @relation("TaskAssignee", fields: [assigned_user_id], references: [id], onDelete: SetNull)
 
     @@id([id, userid])
+    @@index([assigned_user_id])
 }
 
 model KanbanColumns {

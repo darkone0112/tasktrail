@@ -8,7 +8,7 @@ div
 
 <script>
 import alertify from 'alertifyjs'
-import { getTasks, saveTasks, alertifysettings, applyTheme } from '../utils/helpers'
+import { getKanbanTaskOverview, updateKanbanTaskDueDate, alertifysettings, applyTheme } from '../utils/helpers'
 
 import FullCalendar from '@fullcalendar/vue3'
 import dayGridPlugin from '@fullcalendar/daygrid'
@@ -20,9 +20,6 @@ export default {
     name: 'Calendar',
     components: {
         FullCalendar
-    },
-    async mounted() {
-        this.calendarOptions.events = await this.populateCalendar()
     },
     data() {
         return {
@@ -72,37 +69,25 @@ export default {
     },
     methods: {
         async save(info) {
-            const tasks = []
-            for (const task of this.calendarOptions.events) {
-                if (info.oldEvent.id == task.id)
-                    task.start = task.extendedProps.date = info.event.start
-
-                tasks.push(task.extendedProps)
-            }
-
-            await saveTasks(tasks)
+            await updateKanbanTaskDueDate(info.event.extendedProps.task, info.event.start)
+            this.calendarOptions.events = this.listOptions.events = await this.populateCalendar()
         },
         async populateCalendar() {
             const calendar = []
 
-            let tasks = await getTasks()
-
-            tasks = tasks.filter(task => { return !task.done })
+            const overview = await getKanbanTaskOverview()
+            const tasks = [...overview.personal, ...overview.assigned]
+                .filter(task => !task.done && task.dueDate)
 
             tasks.forEach(task => {
                 calendar.push({
                     // Calendar properties
-                    id: task.id,
+                    id: `${task.userid}-${task.id}`,
                     title: task.name,
-                    start: task.date,
+                    start: task.dueDate,
                     allDay: true,
                     extendedProps: {
-                        // Task properties
-                        id: task.id,
-                        name: task.name,
-                        done: task.done,
-                        edit: false,
-                        date: task.date
+                        task
                     }
                 })
             })
