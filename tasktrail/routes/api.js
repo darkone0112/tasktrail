@@ -7,51 +7,40 @@ const path = require("path");
 const { Token } = require("./enums");
 const validator = require("validator");
 
-const { PrismaClient } = require("@prisma/client");
-const prisma = new PrismaClient();
+const { prisma, requireUser, requireAdmin, getAccessibleBoard } = require("./access");
 
 const hbs = require("nodemailer-express-handlebars");
 const crypto = require("crypto");
 
 const { SMTP_PORT, MAIL_HOST, MAIL_USER, MAIL_PASSWD, APP_NAME, APP_DOMAIN } = process.env;
 const { setMailTransport, setHandlebar, setMailData, setTokenExpiracy } = require("./helpers");
-const { error, log } = require("console");
 
 const transporter = setMailTransport(SMTP_PORT, MAIL_HOST, MAIL_USER, MAIL_PASSWD);
 const handlebarOptions = setHandlebar(".handlebars", path.join(__dirname, "../views/email"));
 
 transporter.use("compile", hbs(handlebarOptions));
 
+router.use(requireUser);
+
 router.get("/get/session", async function (req, res, next) {
-	try {
-		if (req.session.passport?.user) {
-			return res.json(req.session.passport.user);
-		}
+	const user = req.currentUser;
+	req.session.username = user.username;
+	req.session.userid = user.id;
+	req.session.verified = user.verified;
+	req.session.email = user.email;
+	req.session.img = user.img;
+	req.session.role = user.role;
+	req.session.locale = user.locale;
 
-		if (!req.session.userid) {
-			return res.status(401).json({ error: "Authentication required" });
-		}
-
-		const user = await prisma.users.findUnique({
-			where: {
-				id: req.session.userid
-			}
-		});
-
-		if (!user || user.disabled) {
-			req.session = null;
-			return res.status(401).json({ error: "Session user is unavailable" });
-		}
-
-		req.session.username = user.username;
-		req.session.verified = user.verified;
-		req.session.email = user.email;
-		req.session.img = user.img;
-
-		return res.json(req.session);
-	} catch (error) {
-		return next(error);
-	}
+	return res.json({
+		userid: user.id,
+		username: user.username,
+		email: user.email,
+		img: user.img,
+		verified: user.verified,
+		role: user.role,
+		locale: user.locale
+	});
 });
 
 //#region tasks
@@ -204,11 +193,26 @@ router.post("/upsert/tasks", async function (req, res, next) {
 			};
 
 			try {
-				await prisma.tasks.upsert({
-					where: { id: values.id },
-					update: values,
-					create: values
+				const result = await prisma.tasks.updateMany({
+					where: {
+						id: values.id,
+						user_id: userid
+					},
+					data: values
 				});
+
+				if (result.count === 0 && !values.id) {
+					await prisma.tasks.create({
+						data: {
+							user_id: userid,
+							order: values.order,
+							name: values.name,
+							done: values.done,
+							edit: values.edit,
+							date: values.date
+						}
+					});
+				}
 			} catch (e) {
 				errors.query = true;
 				// console.log(`ERROR----------\n${e}`);
@@ -230,11 +234,13 @@ router.post("/delete/task", async function (req, res, next) {
 		errors.query = false;
 
 		let task = JSON.parse(req.body.task);
+		const userid = req.currentUser.id;
 
 		try {
-			await prisma.tasks.delete({
+			await prisma.tasks.deleteMany({
 				where: {
-					id: task.id
+					id: task.id,
+					user_id: userid
 				}
 			});
 		} catch (e) {
@@ -289,229 +295,403 @@ router.post("/verify/mail/", async function (req, res, next) {
 });
 
 //#region kanban
-router.post("/save/kanban", async function (req, res, next) {
-	let errors = {};
-	errors.session = false;
+async function ensureDefaultBoards(user) {
+	let personalBoard = await prisma.kanbanBoards.findFirst({
+		where: {
+			owner_id: user.id,
+			visibility: "PERSONAL"
+		},
+		orderBy: { id: "asc" }
+	});
 
-	if (JSON.stringify(req.session) !== "{}") {
-		errors.query = false;
-
-		let userid = req.session.userid ?? req.session.passport.user.userid;
-
-		let kanban = JSON.parse(req.body.kanban);
-
-		kanban.forEach(async (column, index) => {
-			try {
-				let columnData = await prisma.kanbanColumns.upsert({
-					where: {
-						id: column.id == null ? -1 : column.id
-					},
-					create: {
-						order: index,
-						title: column.title,
-						color: column.color,
-						userid: userid
-					},
-					update: {
-						order: index,
-						title: column.title,
-						color: column.color,
-						userid: userid
-					}
-				});
-
-				if (column.tasks.length !== 0) {
-					column.tasks.forEach(async (task, index) => {
-						await prisma.kanbanTasks.update({
-							where: {
-								id_userid: {
-									id: task.id,
-									userid: userid
-								}
-							},
-							data: {
-								id: task.id,
-								order: index,
-								name: task.name,
-								priority: task.priority,
-								kanbanColumnsId: columnData.id,
-								userid: userid
-							}
-						});
-					});
-				}
-			} catch (e) {
-				errors.query = true;
+	if (!personalBoard) {
+		personalBoard = await prisma.kanbanBoards.create({
+			data: {
+				name: "My board",
+				visibility: "PERSONAL",
+				owner_id: user.id
 			}
 		});
 	}
 
-	res.json(errors);
+	await prisma.kanbanColumns.updateMany({
+		where: {
+			userid: user.id,
+			board_id: null
+		},
+		data: { board_id: personalBoard.id }
+	});
+
+	const teamBoardCount = await prisma.kanbanBoards.count({
+		where: { visibility: "TEAM" }
+	});
+
+	if (teamBoardCount === 0) {
+		await prisma.kanbanBoards.create({
+			data: {
+				name: "Team board",
+				visibility: "TEAM",
+				owner_id: user.id
+			}
+		});
+	}
+}
+
+router.get("/kanban/boards", async function (req, res, next) {
+	try {
+		await ensureDefaultBoards(req.currentUser);
+
+		const accessibleBoards = [
+			{ visibility: "TEAM" },
+			{ owner_id: req.currentUser.id },
+			{ Access: { some: { user_id: req.currentUser.id } } }
+		];
+		if (req.currentUser.role === "ADMIN") {
+			accessibleBoards.push({ visibility: "RESTRICTED" });
+		}
+
+		const boards = await prisma.kanbanBoards.findMany({
+			where: { OR: accessibleBoards },
+			orderBy: [{ visibility: "asc" }, { name: "asc" }],
+			select: {
+				id: true,
+				name: true,
+				visibility: true,
+				owner_id: true,
+				Owner: {
+					select: { username: true }
+				}
+			}
+		});
+
+		return res.json(
+			boards.map(board => ({
+				id: board.id,
+				name: board.name,
+				visibility: board.visibility,
+				ownerId: board.owner_id,
+				ownerName: board.Owner.username,
+				canDelete: board.visibility === "PERSONAL" ? board.owner_id === req.currentUser.id : req.currentUser.role === "ADMIN"
+			}))
+		);
+	} catch (error) {
+		return next(error);
+	}
+});
+
+router.post("/kanban/boards", async function (req, res, next) {
+	try {
+		const name = String(req.body.name || "").trim();
+		const visibility = req.body.visibility === "PERSONAL" ? "PERSONAL" : "TEAM";
+
+		if (name.length < 1 || name.length > 100) {
+			return res.status(400).json({ error: "Board name must be between 1 and 100 characters" });
+		}
+
+		const board = await prisma.kanbanBoards.create({
+			data: {
+				name,
+				visibility,
+				owner_id: req.currentUser.id
+			}
+		});
+
+		return res.status(201).json(board);
+	} catch (error) {
+		return next(error);
+	}
+});
+
+router.delete("/kanban/boards/:id", async function (req, res, next) {
+	try {
+		const board = await getAccessibleBoard(req.currentUser, req.params.id, true);
+		if (!board) return res.status(404).json({ error: "Board not found" });
+
+		const isCollaborative = board.visibility !== "PERSONAL";
+		if (isCollaborative && req.currentUser.role !== "ADMIN") {
+			return res.status(403).json({ error: "Only administrators can delete collaborative boards" });
+		}
+		if (!isCollaborative && board.owner_id !== req.currentUser.id) {
+			return res.status(403).json({ error: "Only the owner can delete a personal board" });
+		}
+
+		await prisma.kanbanBoards.delete({
+			where: { id: board.id }
+		});
+		return res.status(204).end();
+	} catch (error) {
+		return next(error);
+	}
+});
+
+router.post("/save/kanban", async function (req, res, next) {
+	try {
+		const boardId = Number(req.body.boardId);
+		const board = await getAccessibleBoard(req.currentUser, boardId, true);
+		if (!board) return res.status(404).json({ error: "Board not found" });
+
+		const kanban = Array.isArray(req.body.kanban) ? req.body.kanban : JSON.parse(req.body.kanban);
+
+		await prisma.$transaction(async tx => {
+			for (const [columnIndex, column] of kanban.entries()) {
+				let columnData;
+				if (column.id == null) {
+					columnData = await tx.kanbanColumns.create({
+						data: {
+							order: columnIndex,
+							title: String(column.title || "").slice(0, 191),
+							color: column.color,
+							userid: req.currentUser.id,
+							board_id: board.id
+						}
+					});
+				} else {
+					const existingColumn = await tx.kanbanColumns.findFirst({
+						where: {
+							id: Number(column.id),
+							board_id: board.id
+						}
+					});
+					if (!existingColumn) throw new Error("Column does not belong to this board");
+
+					columnData = await tx.kanbanColumns.update({
+						where: { id: existingColumn.id },
+						data: {
+							order: columnIndex,
+							title: String(column.title || "").slice(0, 191),
+							color: column.color
+						}
+					});
+				}
+
+				for (const [taskIndex, task] of (column.tasks || []).entries()) {
+					const existingTask = await tx.kanbanTasks.findUnique({
+						where: {
+							id_userid: {
+								id: Number(task.id),
+								userid: Number(task.userid)
+							}
+						},
+						include: { KanbanColumns: true }
+					});
+					if (!existingTask || existingTask.KanbanColumns?.board_id !== board.id) {
+						throw new Error("Task does not belong to this board");
+					}
+
+					await tx.kanbanTasks.update({
+						where: {
+							id_userid: {
+								id: existingTask.id,
+								userid: existingTask.userid
+							}
+						},
+						data: {
+							order: taskIndex,
+							name: String(task.name || ""),
+							priority: Number(task.priority) || 0,
+							kanbanColumnsId: columnData.id
+						}
+					});
+				}
+			}
+		});
+
+		return res.json({ query: false });
+	} catch (error) {
+		return next(error);
+	}
 });
 
 router.get("/get/kanban", async function (req, res, next) {
-	let errors = {};
-	errors.session = false;
+	try {
+		const board = await getAccessibleBoard(req.currentUser, req.query.boardId, false);
+		if (!board) return res.status(404).json({ error: "Board not found" });
 
-	if (JSON.stringify(req.session) !== "{}") {
-		errors.query = false;
-
-		let userid = req.session.userid ?? req.session.passport.user.userid;
-		let kanban = [];
-
-		try {
-			let columns = await prisma.kanbanColumns.findMany({
-				where: {
-					userid: userid
-				},
-				orderBy: {
-					order: "asc"
+		const columns = await prisma.kanbanColumns.findMany({
+			where: { board_id: board.id },
+			orderBy: { order: "asc" },
+			include: {
+				KanbanTasks: {
+					orderBy: { order: "asc" }
 				}
-			});
-
-			if (columns.length == 0) return res.json([]);
-
-			for (let column of columns) {
-				let tasks = await prisma.kanbanTasks.findMany({
-					where: {
-						kanbanColumnsId: column.id
-					},
-					orderBy: {
-						order: "asc"
-					}
-				});
-
-				column.tasks = tasks;
-
-				kanban.push(column);
 			}
+		});
 
-			return res.json(kanban);
-		} catch (e) {
-			errors.query = true;
-			// console.log(e);
-		}
+		return res.json(
+			columns.map(column => ({
+				...column,
+				tasks: column.KanbanTasks,
+				KanbanTasks: undefined
+			}))
+		);
+	} catch (error) {
+		return next(error);
 	}
-
-	res.json(errors);
 });
 
 router.post("/insert/kanban-task", async function (req, res, next) {
-	let errors = {};
-	errors.session = false;
+	try {
+		const column = req.body.column;
+		const task = req.body.task;
+		const board = await getAccessibleBoard(req.currentUser, req.body.boardId, true);
+		if (!board) return res.status(404).json({ error: "Board not found" });
 
-	let column = JSON.parse(req.body.column);
-	let task = JSON.parse(req.body.task);
+		const targetColumn = await prisma.kanbanColumns.findFirst({
+			where: {
+				id: Number(column.id),
+				board_id: board.id
+			}
+		});
+		if (!targetColumn) return res.status(404).json({ error: "Column not found" });
 
-	if (JSON.stringify(req.session) !== "{}") {
-		let userid = req.session.userid ?? req.session.passport.user.userid;
+		const maxTask = await prisma.kanbanTasks.findFirst({
+			where: { userid: req.currentUser.id },
+			select: { id: true },
+			orderBy: { id: "desc" }
+		});
 
-		try {
-			maxid = await prisma.kanbanTasks.findFirst({
-				where: {
-					userid: userid
-				},
-				select: {
-					id: true
-				},
-				orderBy: {
-					id: "desc"
-				}
-			});
+		await prisma.kanbanTasks.create({
+			data: {
+				id: maxTask == null ? 0 : maxTask.id + 1,
+				order: 0,
+				name: String(task.name || ""),
+				priority: Number(task.priority) || 0,
+				kanbanColumnsId: targetColumn.id,
+				userid: req.currentUser.id
+			}
+		});
 
-			await prisma.kanbanTasks.create({
-				data: {
-					id: maxid == null ? 0 : ++maxid.id,
-					order: 0,
-					name: task.name,
-					priority: task.priority,
-					kanbanColumnsId: column.id,
-					userid: userid
-				}
-			});
-		} catch (e) {
-			errors.query = true;
-			// console.log(e);
-		}
+		return res.status(201).json({ query: false });
+	} catch (error) {
+		return next(error);
 	}
-
-	res.json(errors);
 });
 
 router.post("/delete/kanban-column", async function (req, res, next) {
-	let errors = {};
-	errors.session = false;
+	try {
+		const column = req.body.column;
+		const board = await getAccessibleBoard(req.currentUser, req.body.boardId, true);
+		if (!board) return res.status(404).json({ error: "Board not found" });
 
-	let column = JSON.parse(req.body.column);
-
-	if (JSON.stringify(req.session) !== "{}") {
-		// console.log(JSON.stringify(column));
-
-		try {
-			await prisma.kanbanColumns.delete({
-				where: {
-					id: column.id
-				}
-			});
-		} catch (e) {
-			errors.query = true;
-			// console.log(e);
-		}
+		const result = await prisma.kanbanColumns.deleteMany({
+			where: {
+				id: Number(column.id),
+				board_id: board.id
+			}
+		});
+		if (result.count === 0) return res.status(404).json({ error: "Column not found" });
+		return res.json({ query: false });
+	} catch (error) {
+		return next(error);
 	}
-
-	res.json(errors);
-});
-
-router.post("/delete/kanban-column", async function (req, res, next) {
-	let errors = {};
-	errors.session = false;
-
-	let column = JSON.parse(req.body.column);
-
-	if (JSON.stringify(req.session) !== "{}") {
-		// console.log(JSON.stringify(column));
-
-		try {
-			await prisma.kanbanColumns.delete({
-				where: {
-					id: column.id
-				}
-			});
-		} catch (e) {
-			errors.query = true;
-			// console.log(e);
-		}
-	}
-
-	res.json(errors);
 });
 
 router.post("/delete/kanban-task", async function (req, res, next) {
-	let errors = {};
-	errors.session = false;
+	try {
+		const task = req.body.task;
+		const board = await getAccessibleBoard(req.currentUser, req.body.boardId, true);
+		if (!board) return res.status(404).json({ error: "Board not found" });
 
-	let task = JSON.parse(req.body.task);
+		const existingTask = await prisma.kanbanTasks.findUnique({
+			where: {
+				id_userid: {
+					id: Number(task.id),
+					userid: Number(task.userid)
+				}
+			},
+			include: { KanbanColumns: true }
+		});
+		if (!existingTask || existingTask.KanbanColumns?.board_id !== board.id) {
+			return res.status(404).json({ error: "Task not found" });
+		}
 
-	if (JSON.stringify(req.session) !== "{}") {
-		let userid = req.session.userid ?? req.session.passport.user.userid;
-		// console.log(JSON.stringify(task));
+		await prisma.kanbanTasks.delete({
+			where: {
+				id_userid: {
+					id: existingTask.id,
+					userid: existingTask.userid
+				}
+			}
+		});
+		return res.json({ query: false });
+	} catch (error) {
+		return next(error);
+	}
+});
+//#endregion
 
-		try {
-			await prisma.kanbanTasks.delete({
+//#region settings and permissions
+router.put("/settings/locale", async function (req, res, next) {
+	try {
+		const locale = req.body.locale === "es" ? "es" : "en";
+		await prisma.users.update({
+			where: { id: req.currentUser.id },
+			data: { locale }
+		});
+		req.session.locale = locale;
+		res.cookie("lang", locale, { sameSite: "lax" });
+		return res.json({ locale });
+	} catch (error) {
+		return next(error);
+	}
+});
+
+router.get("/admin/users", requireAdmin, async function (req, res, next) {
+	try {
+		const users = await prisma.users.findMany({
+			where: { disabled: false },
+			orderBy: { id: "asc" },
+			select: {
+				id: true,
+				username: true,
+				email: true,
+				role: true
+			}
+		});
+		return res.json(users);
+	} catch (error) {
+		return next(error);
+	}
+});
+
+router.put("/admin/users/:id/role", requireAdmin, async function (req, res, next) {
+	try {
+		const userId = Number(req.params.id);
+		const role = req.body.role;
+		if (!["ADMIN", "MEMBER"].includes(role)) {
+			return res.status(400).json({ error: "Invalid role" });
+		}
+		const targetUser = await prisma.users.findUnique({ where: { id: userId } });
+		if (!targetUser || targetUser.disabled) {
+			return res.status(404).json({ error: "User not found" });
+		}
+
+		if (targetUser.role === "ADMIN" && role === "MEMBER") {
+			const adminCount = await prisma.users.count({
 				where: {
-					id_userid: {
-						id: task.id,
-						userid: userid
-					}
+					role: "ADMIN",
+					disabled: false
 				}
 			});
-		} catch (e) {
-			errors.query = true;
-			// console.log(e);
+			if (adminCount <= 1) {
+				return res.status(400).json({ error: "At least one active administrator is required" });
+			}
 		}
-	}
 
-	res.json(errors);
+		const user = await prisma.users.update({
+			where: { id: userId },
+			data: { role },
+			select: {
+				id: true,
+				username: true,
+				email: true,
+				role: true
+			}
+		});
+		return res.json(user);
+	} catch (error) {
+		return next(error);
+	}
 });
 //#endregion
 
@@ -526,9 +706,32 @@ router.post("/delete/account", async function (req, res, next) {
 		const userId = req.session.userid || req.session.passport.user.userid;
 
 		try {
-			await prisma.Users.update({
-				where: { id: userId },
-				data: { disabled: true }
+			await prisma.$transaction(async tx => {
+				await tx.users.update({
+					where: { id: userId },
+					data: { disabled: true }
+				});
+
+				if (req.currentUser.role === "ADMIN") {
+					const activeAdminCount = await tx.users.count({
+						where: {
+							role: "ADMIN",
+							disabled: false
+						}
+					});
+					if (activeAdminCount === 0) {
+						const nextUser = await tx.users.findFirst({
+							where: { disabled: false },
+							orderBy: { id: "asc" }
+						});
+						if (nextUser) {
+							await tx.users.update({
+								where: { id: nextUser.id },
+								data: { role: "ADMIN" }
+							});
+						}
+					}
+				}
 			});
 			req.session = null;
 		} catch (e) {

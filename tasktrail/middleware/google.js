@@ -19,16 +19,23 @@ passport.use(
 			const photo = profile.photos[0].value;
 
 			if (profile) {
-				const user = await prisma.users.upsert({
-					where: {
-						provider_id: googleId
-					},
-					create: {
-						provider_id: googleId,
-						email: email,
-						username: username,
-						img: photo
-					}
+				await prisma.$transaction(async tx => {
+					const existingUser = await tx.users.findUnique({
+						where: { provider_id: googleId }
+					});
+					if (existingUser) return existingUser;
+
+					const userCount = await tx.users.count();
+					return tx.users.create({
+						data: {
+							provider_id: googleId,
+							email: email,
+							username: username,
+							img: photo,
+							role: userCount === 0 ? "ADMIN" : "MEMBER",
+							locale: "en"
+						}
+					});
 				});
 			}
 
@@ -50,7 +57,9 @@ passport.serializeUser(async function (user, done) {
 		username: data.username,
 		email: data.email,
 		provider: user.provider,
-		img: user.photos[0].value
+		img: user.photos[0].value,
+		role: data.role,
+		locale: data.locale
 	});
 });
 

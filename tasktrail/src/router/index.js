@@ -132,6 +132,23 @@ export const routes = [
 
 export async function initializeUser() {
 	user = await getUser();
+	const locale = user.locale === "es" ? "es" : "en";
+	localStorage.setItem("locale", locale);
+	i18n.global.locale = locale;
+
+	for (const route of routes) {
+		if (!route.meta || route.name === "Logout") continue;
+		const key = String(route.name).toLowerCase();
+		route.meta.name = route.name === "Profile" ? user.username : i18n.global.t(`${key}.menuTitle`);
+		route.meta.title = i18n.global.t(`${key}.title`);
+		route.meta.desc = i18n.global.t(`${key}.desc`);
+		route.meta.group = i18n.global.t(`${key}.group`);
+	}
+
+	const logoutRoute = routes.find(route => route.name === "Logout");
+	logoutRoute.meta.name = i18n.global.t("logout.menuTitle");
+	logoutRoute.meta.desc = i18n.global.t("logout.desc");
+	logoutRoute.meta.group = i18n.global.t("logout.group");
 	routes.find(route => route.name === "Profile").meta.name = user.username;
 	return user;
 }

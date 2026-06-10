@@ -28,9 +28,13 @@ model Users {
     img         String?  @db.VarChar(255) @default("/media/images/uploads/userpic.png")
     verified    Boolean  @default(dbgenerated("false"))
     disabled    Boolean  @default(dbgenerated("false"))
+    role        UserRole @default(MEMBER)
+    locale      String   @default("en") @db.VarChar(5)
 
     Tasks       Tasks[]
     Tokens      Tokens[]
+    ownedBoards KanbanBoards[] @relation("BoardOwner")
+    boardAccess KanbanBoardAccess[]
 }
 
 model Tokens {
@@ -63,8 +67,39 @@ model KanbanColumns {
     title       String
     color       String
     userid      Int
+    board_id    Int?
 
     KanbanTasks KanbanTasks[]
+    Board       KanbanBoards? @relation(fields: [board_id], references: [id], onDelete: Cascade)
+
+    @@index([board_id])
+}
+
+model KanbanBoards {
+    id          Int             @id @default(autoincrement())
+    name        String          @db.VarChar(100)
+    visibility  BoardVisibility @default(TEAM)
+    owner_id    Int
+    created_at  DateTime        @default(now())
+    updated_at  DateTime        @updatedAt
+
+    Owner       Users               @relation("BoardOwner", fields: [owner_id], references: [id])
+    Columns     KanbanColumns[]
+    Access      KanbanBoardAccess[]
+
+    @@index([owner_id])
+    @@index([visibility])
+}
+
+model KanbanBoardAccess {
+    board_id   Int
+    user_id    Int
+    permission BoardPermission @default(EDIT)
+
+    Board KanbanBoards @relation(fields: [board_id], references: [id], onDelete: Cascade)
+    User  Users        @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+    @@id([board_id, user_id])
 }
 
 model TokenTypes {
@@ -72,4 +107,20 @@ model TokenTypes {
     name     String   @db.VarChar(255)
 
     Tokens   Tokens[]
+}
+
+enum UserRole {
+    ADMIN
+    MEMBER
+}
+
+enum BoardVisibility {
+    TEAM
+    PERSONAL
+    RESTRICTED
+}
+
+enum BoardPermission {
+    VIEW
+    EDIT
 }

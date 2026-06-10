@@ -34,6 +34,10 @@ export default {
         column: {
             type: Object,
             required: true
+        },
+        boardId: {
+            type: Number,
+            required: true
         }
     },
     data() {
@@ -56,7 +60,7 @@ export default {
             this.$emit('updateColumn')
         },
         async addTask(column) {
-            await insertKanbanTask(column, { id: null, name: "", priority: 0 })
+            await insertKanbanTask(this.boardId, column, { id: null, name: "", priority: 0 })
             this.$emit('updateColumn')
         },
         printRemainingTasks(numberOfTasks) {

@@ -90,6 +90,20 @@
             "buttons": {
                 "newColumn": "New column"
             },
+            "boards": {
+                "current": "Current board",
+                "create": "Create a board",
+                "name": "Board name",
+                "add": "Create",
+                "delete": "Delete board",
+                "deleteConfirm": "Delete \"{name}\"? This cannot be undone.",
+                "empty": "No boards are available.",
+                "visibility": {
+                    "team": "Team",
+                    "personal": "Personal",
+                    "restricted": "Restricted"
+                }
+            },
             "placeholder": "Double click to edit the task..."
         },
         "calendar": {
@@ -122,6 +136,18 @@
             },
             "language": {
                 "title": "UI language"
+            },
+            "permissions": {
+                "title": "User permissions",
+                "description": "Administrators can manage team boards and grant administrator access. More granular board and group access can be added on top of this role model.",
+                "user": "User",
+                "email": "Email",
+                "role": "Role",
+                "saved": "Permissions updated.",
+                "roles": {
+                    "member": "Member",
+                    "admin": "Administrator"
+                }
             },
             "buttons": {
                 "save": "Save"
@@ -244,6 +270,20 @@
             "buttons": {
                 "newColumn": "Nueva columna"
             },
+            "boards": {
+                "current": "Tablero actual",
+                "create": "Crear un tablero",
+                "name": "Nombre del tablero",
+                "add": "Crear",
+                "delete": "Eliminar tablero",
+                "deleteConfirm": "¿Eliminar \"{name}\"? Esta acción no se puede deshacer.",
+                "empty": "No hay tableros disponibles.",
+                "visibility": {
+                    "team": "Equipo",
+                    "personal": "Personal",
+                    "restricted": "Restringido"
+                }
+            },
             "placeholder": "Haz doble click para editar la tarea..."
         },
         "calendar": {
@@ -276,6 +316,18 @@
             },
             "language": {
                 "title": "Idioma de la interfaz"
+            },
+            "permissions": {
+                "title": "Permisos de usuarios",
+                "description": "Los administradores pueden gestionar los tableros del equipo y conceder acceso de administrador. Este modelo permite añadir más adelante permisos por tablero y por grupo.",
+                "user": "Usuario",
+                "email": "Email",
+                "role": "Rol",
+                "saved": "Permisos actualizados.",
+                "roles": {
+                    "member": "Miembro",
+                    "admin": "Administrador"
+                }
             },
             "buttons": {
                 "save": "Guardar"

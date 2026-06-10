@@ -23,6 +23,28 @@ div
         select(v-model='selectedLocale')
             option(v-for='locale in locales' :key='locale.code' :value='locale.code') {{ $t(locale.name) }}
 
+    template(v-if="isAdmin")
+        h1.is-title.is-size-4.mt-6
+            span.fa-solid.fa-user-shield.mr-2
+            | {{ $t('settings.permissions.title') }}
+        p.mb-4 {{ $t('settings.permissions.description') }}
+        .table-container
+            table.table.is-fullwidth
+                thead
+                    tr
+                        th {{ $t('settings.permissions.user') }}
+                        th {{ $t('settings.permissions.email') }}
+                        th {{ $t('settings.permissions.role') }}
+                tbody
+                    tr(v-for="member in users" :key="member.id")
+                        td {{ member.username }}
+                        td {{ member.email }}
+                        td
+                            .select
+                                select(v-model="member.role" @change="changeRole(member)")
+                                    option(value="MEMBER") {{ $t('settings.permissions.roles.member') }}
+                                    option(value="ADMIN") {{ $t('settings.permissions.roles.admin') }}
+
     .save-settings
         button.button.is-success.my-5(@click="saveSettings()") {{ $t('settings.buttons.save') }}
 
@@ -30,7 +52,8 @@ div
 <script>
 import alertify from 'alertifyjs';
 import messages from '../locales/locales.json'
-import { applyTheme, alertifysettings } from '../utils/helpers';
+import { applyTheme, alertifysettings, getUsers, saveLocale, updateUserRole } from '../utils/helpers';
+import { user } from '../router';
 
 export default {
     name: 'Settings',
@@ -79,6 +102,8 @@ export default {
             ],
             selectedLocale: this.$i18n.locale,
             selectedTheme: localStorage.getItem('selectedTheme') || "0",
+            users: [],
+            isAdmin: user?.role === "ADMIN",
             applyColorTheme(theme) {
                 applyTheme(theme);
 
@@ -108,6 +133,23 @@ export default {
                 }
             });
         },
+        async loadUsers() {
+            if (!this.isAdmin) return
+            try {
+                this.users = await getUsers()
+            } catch (error) {
+                alertify.error(error.message)
+            }
+        },
+        async changeRole(member) {
+            try {
+                await updateUserRole(member.id, member.role)
+                alertify.success(this.$t('settings.permissions.saved'))
+            } catch (error) {
+                alertify.error(error.message)
+                await this.loadUsers()
+            }
+        },
         async saveSettings() {
             // console.log("Saving settings...");
             // Save currently selected theme
@@ -117,6 +159,7 @@ export default {
             localStorage.setItem('theme', "[" + JSON.stringify(this.themes.find((theme) => theme.id == localStorage.getItem('selectedTheme'))) + "]");
             // Save locale
             localStorage.setItem('locale', this.selectedLocale);
+            await saveLocale(this.selectedLocale);
 
             // console.log("Settings saved.");
             location.reload(); // Workaround para que los locales de los popups de delete account y logout cambien
@@ -138,6 +181,7 @@ export default {
     created() {
         alertify.defaults = alertifysettings;
         applyTheme();
+        this.loadUsers();
     },
 };
 </script>

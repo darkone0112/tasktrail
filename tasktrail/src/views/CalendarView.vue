@@ -29,7 +29,7 @@ export default {
             calendarOptions: {
                 events: [],
                 locales: allLocales,
-                locale: localStorage.getItem('locale') || 'es',
+                locale: localStorage.getItem('locale') || 'en',
                 plugins: [
                     dayGridPlugin,
                     interactionPlugin,
@@ -55,7 +55,7 @@ export default {
             listOptions: {
                 events: [],
                 locales: allLocales,
-                locale: localStorage.getItem('locale') || 'es',
+                locale: localStorage.getItem('locale') || 'en',
                 plugins: [
                     listPlugin,
                     dayGridPlugin,

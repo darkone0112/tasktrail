@@ -2,7 +2,7 @@ import { createI18n } from "vue-i18n";
 import messages from "../locales/locales";
 export const i18n = createI18n({
 	legacy: true,
-	locale: localStorage.getItem("locale") || "es", // idioma por defecto
+	locale: localStorage.getItem("locale") || "en",
 	fallbackLocale: "en",
 	messages
 });
@@ -116,38 +116,79 @@ export async function deleteAccount() {
 //#endregion
 
 //#region kanban
-export async function saveKanban(kanban) {
-	// console.log("save kanban");
-
-	await fetch("/api/save/kanban", FETCH_OPTIONS(FETCH_METHODS.POST, CONTENT_TYPES.JSON, JSON.stringify({ kanban: JSON.stringify(kanban) })));
+async function apiRequest(url, options) {
+	const response = await fetch(url, options);
+	if (!response.ok) {
+		const body = await response.json().catch(() => ({}));
+		throw new Error(body.error || `Request failed (${response.status})`);
+	}
+	if (response.status === 204) return null;
+	return response.json();
 }
 
-export async function getKanban() {
-	// console.log("update kanban");
-
-	const kanban = await fetch("/api/get/kanban", FETCH_OPTIONS(FETCH_METHODS.GET, CONTENT_TYPES.JSON)).then(res => res.json());
-
-	// console.log(kanban);
-
-	return kanban;
+export async function getKanbanBoards() {
+	return apiRequest("/api/kanban/boards", FETCH_OPTIONS(FETCH_METHODS.GET, CONTENT_TYPES.JSON));
 }
 
-export async function insertKanbanTask(column, task) {
-	// console.log("insert kanban task");
-
-	await fetch("/api/insert/kanban-task", FETCH_OPTIONS(FETCH_METHODS.POST, CONTENT_TYPES.JSON, JSON.stringify({ column: JSON.stringify(column), task: JSON.stringify(task) })));
+export async function createKanbanBoard(name, visibility) {
+	return apiRequest(
+		"/api/kanban/boards",
+		FETCH_OPTIONS(FETCH_METHODS.POST, CONTENT_TYPES.JSON, JSON.stringify({ name, visibility }))
+	);
 }
 
-export async function deleteKanbanColumn(column) {
-	// console.log("delete kanban column");
-
-	await fetch("/api/delete/kanban-column", FETCH_OPTIONS(FETCH_METHODS.POST, CONTENT_TYPES.JSON, JSON.stringify({ column: JSON.stringify(column) })));
+export async function deleteKanbanBoard(boardId) {
+	return apiRequest(`/api/kanban/boards/${boardId}`, FETCH_OPTIONS(FETCH_METHODS.DELETE, CONTENT_TYPES.JSON));
 }
 
-export async function deleteKanbanTask(task) {
-	// console.log("delete kanban task");
+export async function saveBoardKanban(boardId, kanban) {
+	return apiRequest(
+		"/api/save/kanban",
+		FETCH_OPTIONS(FETCH_METHODS.POST, CONTENT_TYPES.JSON, JSON.stringify({ boardId, kanban }))
+	);
+}
 
-	await fetch("/api/delete/kanban-task", FETCH_OPTIONS(FETCH_METHODS.POST, CONTENT_TYPES.JSON, JSON.stringify({ task: JSON.stringify(task) })));
+export async function getKanban(boardId) {
+	return apiRequest(`/api/get/kanban?boardId=${encodeURIComponent(boardId)}`, FETCH_OPTIONS(FETCH_METHODS.GET, CONTENT_TYPES.JSON));
+}
+
+export async function insertKanbanTask(boardId, column, task) {
+	return apiRequest(
+		"/api/insert/kanban-task",
+		FETCH_OPTIONS(FETCH_METHODS.POST, CONTENT_TYPES.JSON, JSON.stringify({ boardId, column, task }))
+	);
+}
+
+export async function deleteKanbanColumn(boardId, column) {
+	return apiRequest(
+		"/api/delete/kanban-column",
+		FETCH_OPTIONS(FETCH_METHODS.POST, CONTENT_TYPES.JSON, JSON.stringify({ boardId, column }))
+	);
+}
+
+export async function deleteKanbanTask(boardId, task) {
+	return apiRequest(
+		"/api/delete/kanban-task",
+		FETCH_OPTIONS(FETCH_METHODS.POST, CONTENT_TYPES.JSON, JSON.stringify({ boardId, task }))
+	);
+}
+
+export async function saveLocale(locale) {
+	return apiRequest(
+		"/api/settings/locale",
+		FETCH_OPTIONS(FETCH_METHODS.PUT, CONTENT_TYPES.JSON, JSON.stringify({ locale }))
+	);
+}
+
+export async function getUsers() {
+	return apiRequest("/api/admin/users", FETCH_OPTIONS(FETCH_METHODS.GET, CONTENT_TYPES.JSON));
+}
+
+export async function updateUserRole(userId, role) {
+	return apiRequest(
+		`/api/admin/users/${userId}/role`,
+		FETCH_OPTIONS(FETCH_METHODS.PUT, CONTENT_TYPES.JSON, JSON.stringify({ role }))
+	);
 }
 //#endregion
 

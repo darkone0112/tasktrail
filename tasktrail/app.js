@@ -67,7 +67,7 @@ i18n.configure({
 	locales: ["es", "en"],
 	directory: path.join(__dirname, "/public/i18n"),
 	cookie: "lang",
-	defaultLocale: "es",
+	defaultLocale: "en",
 	objectNotation: true
 });
 

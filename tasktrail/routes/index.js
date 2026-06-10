@@ -81,6 +81,8 @@ router.post(
 			req.session.verified = user.verified;
 			req.session.email = user.email;
 			req.session.img = user.img;
+			req.session.role = user.role;
+			req.session.locale = user.locale;
 
 			return res.redirect("/u/home");
 		}
@@ -144,12 +146,18 @@ router.post(
 		if (!(checkPasswords(password, password2) && username && email)) return next();
 
 		try {
-			const user = await prisma.users.create({
-				data: {
-					username: username,
-					email: email,
-					password: await bcrypt.hash(password, 10)
-				}
+			const hashedPassword = await bcrypt.hash(password, 10);
+			const user = await prisma.$transaction(async tx => {
+				const userCount = await tx.users.count();
+				return tx.users.create({
+					data: {
+						username: username,
+						email: email,
+						password: hashedPassword,
+						role: userCount === 0 ? "ADMIN" : "MEMBER",
+						locale: "en"
+					}
+				});
 			});
 
 			const token = crypto.randomBytes(16).toString("hex");

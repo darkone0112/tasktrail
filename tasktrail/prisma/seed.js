@@ -17,6 +17,27 @@ async function main() {
             }
         })
     }
+
+    const adminCount = await prisma.users.count({
+        where: {
+            role: 'ADMIN',
+            disabled: false
+        }
+    })
+
+    if (adminCount === 0) {
+        const firstUser = await prisma.users.findFirst({
+            where: { disabled: false },
+            orderBy: { id: 'asc' }
+        })
+
+        if (firstUser) {
+            await prisma.users.update({
+                where: { id: firstUser.id },
+                data: { role: 'ADMIN' }
+            })
+        }
+    }
 }
 
 main()
