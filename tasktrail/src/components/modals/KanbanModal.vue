@@ -11,25 +11,11 @@ div(@keyup.esc="isActive = false")
                 .field
                     .label {{ $t('kanban.modal.name') }}:
                     input.input(type="text" :placeholder="$t('kanban.modal.placeholder')" required v-model="columnName")
-                .field
-                    .label {{ $t('kanban.modal.color') }}:
-                    .kanban-color-picker
-                        input.input(type="color" v-model="columnColor")
-                        .kanban-color-swatches
-                            button.kanban-color-swatch(
-                                v-for="color in defaultColors"
-                                :key="color"
-                                type="button"
-                                :style="{ backgroundColor: color }"
-                                :class="{ 'is-selected': columnColor === color }"
-                                :aria-label="color"
-                                @click="columnColor = color"
-                            )
 
             .modal-card-foot.is-flex.is-justify-content-flex-end
                 button.button(@click="toggleCreateModal()") {{ $t('kanban.modal.cancel') }}
 
-                button.button.is-success(@click="saveColumn(columnName, columnColor)") {{ $t('kanban.modal.create') }}
+                button.button.is-success(@click="saveColumn(columnName)") {{ $t('kanban.modal.create') }}
 </template>
 
 <script>
@@ -39,18 +25,7 @@ export default {
     data() {
         return {
             columnName: "",
-            columnColor: "#bae1ff",
             isActive: false,
-
-            defaultColors: [
-                "#d5b6d5", // Purple
-                "#ffb3ba", // Red
-                "#ffdfba", // Orange
-                "#ffe6a2", // Yellow
-                "#baffc9", // Green
-                "#bae1ff", // Blue
-                "#bff1f2", // Teal
-            ]
         }
     },
     methods: {
@@ -60,14 +35,13 @@ export default {
             // Helper.enableScroll()
             Helper.toggleScroll(this.isActive)
         },
-        saveColumn(name, color) {
+        saveColumn(name) {
             this.resetDefaults()
-            this.$emit('add', name, color)
+            this.$emit('add', name)
             this.toggleCreateModal()
         },
         resetDefaults() {
             this.columnName = ""
-            this.columnColor = "#bae1ff"
         }
     }
 }

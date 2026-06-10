@@ -47,7 +47,11 @@
                 h2.title.is-5 {{ $t('home.dashboard.pendingTasks') }}
                 router-link(to="/u/calendar") {{ $t('home.dashboard.calendarLink') }}
             .home-deadline-list(v-if="upcomingDeadlines.length")
-                article.home-deadline(v-for="deadline in upcomingDeadlines" :key="taskKey(deadline)")
+                article.home-deadline(
+                    v-for="deadline in upcomingDeadlines"
+                    :key="taskKey(deadline)"
+                    :style="{ borderLeft: `5px solid ${taskColor(deadline)}` }"
+                )
                     div
                         strong {{ deadline.name }}
                         p {{ deadline.boardName }} · {{ deadline.columnTitle }}
@@ -69,7 +73,7 @@
 <script>
 import alertify from 'alertifyjs'
 import { user } from '../router/index'
-import { getKanbanBoards, getKanbanTaskOverview, alertifysettings, applyTheme } from '../utils/helpers'
+import { getKanbanBoards, getKanbanTaskOverview, getTaskPriorityColor, alertifysettings, applyTheme } from '../utils/helpers'
 
 export default {
     name: 'Home',
@@ -93,6 +97,9 @@ export default {
         },
     },
     methods: {
+        taskColor(task) {
+            return getTaskPriorityColor(task.priority)
+        },
         taskKey(task) {
             return `${task.userid}-${task.id}`
         },

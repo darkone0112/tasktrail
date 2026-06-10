@@ -51,10 +51,11 @@
                     :animation="200"
                     :delay="150"
                     :delay-on-touch-only="true"
-                    chosen-class="kanban__drop-preview"
-                    ghost-class="hide"
+                    chosen-class="kanban__chosen"
+                    ghost-class="kanban__ghost"
+                    :fallback-tolerance="4"
                     :empty-insert-threshhold="100"
-                    filter="input, textarea, button, select, option, a, .is-clickable"
+                    filter="input:not(:disabled), textarea:not(:disabled), button, select, option, a, .is-clickable"
                     :prevent-on-filter="false"
                     @end="save()"
                 )
@@ -193,10 +194,10 @@ export default {
                 () => {}
             )
         },
-        async addColumn(title, color) {
+        async addColumn(title) {
             if (!title || !this.selectedBoard) return
             try {
-                await createKanbanColumn(this.selectedBoard.id, title, color)
+                await createKanbanColumn(this.selectedBoard.id, title)
                 await this.getKanban()
             } catch (error) {
                 alertify.error(error.message)

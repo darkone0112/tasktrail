@@ -11,7 +11,7 @@ div
 
 <script>
 import alertify from 'alertifyjs'
-import { getKanbanTaskOverview, updateKanbanTaskDueDate, alertifysettings, applyTheme } from '../utils/helpers'
+import { getKanbanTaskOverview, getTaskPriorityColor, updateKanbanTaskDueDate, alertifysettings, applyTheme } from '../utils/helpers'
 
 import FullCalendar from '@fullcalendar/vue3'
 import dayGridPlugin from '@fullcalendar/daygrid'
@@ -99,8 +99,8 @@ export default {
                     title: `${task.name} · ${task.boardName}`,
                     start: task.dueDate,
                     allDay: true,
-                    backgroundColor: task.done ? '#7a7a7a' : task.columnColor,
-                    borderColor: task.done ? '#7a7a7a' : task.columnColor,
+                    backgroundColor: task.done ? '#7a7a7a' : getTaskPriorityColor(task.priority),
+                    borderColor: task.done ? '#7a7a7a' : getTaskPriorityColor(task.priority),
                     classNames: task.done ? ['calendar-task-done'] : [],
                     extendedProps: {
                         task

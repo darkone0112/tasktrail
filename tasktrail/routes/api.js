@@ -655,12 +655,8 @@ router.post("/kanban/columns", async function (req, res, next) {
 		if (!board) return res.status(404).json({ error: "Board not found" });
 
 		const title = String(req.body.title || "").trim();
-		const color = String(req.body.color || "#bae1ff");
 		if (title.length < 1 || title.length > 191) {
 			return res.status(400).json({ error: "Column title must be between 1 and 191 characters" });
-		}
-		if (!/^#[0-9a-f]{6}$/i.test(color)) {
-			return res.status(400).json({ error: "Invalid column color" });
 		}
 
 		const lastColumn = await prisma.kanbanColumns.findFirst({
@@ -673,7 +669,7 @@ router.post("/kanban/columns", async function (req, res, next) {
 			data: {
 				order: lastColumn ? lastColumn.order + 1 : 0,
 				title,
-				color,
+				color: "#d1d5db",
 				userid: req.currentUser.id,
 				board_id: board.id
 			}

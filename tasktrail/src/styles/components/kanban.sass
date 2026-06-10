@@ -8,32 +8,6 @@
     > .button
         margin-bottom: .75rem
 
-.kanban-color-picker
-    display: flex
-    align-items: center
-    gap: .75rem
-
-    > input[type="color"]
-        width: 4rem
-        padding: .2rem
-
-.kanban-color-swatches
-    display: flex
-    flex-wrap: wrap
-    gap: .4rem
-
-.kanban-color-swatch
-    width: 1.75rem
-    height: 1.75rem
-    padding: 0
-    border: 2px solid transparent
-    border-radius: 50%
-    cursor: pointer
-
-    &.is-selected
-        border-color: $clr-gray-dark
-        box-shadow: 0 0 0 2px $clr-white
-
 .kanban-wrapper
     overflow-x: auto
     overflow-y: hidden
@@ -44,14 +18,17 @@
 .kanban-board
     display: flex
     align-items: stretch
+    justify-content: center
     gap: 1em
+    width: max-content
     height: 100%
-    min-width: max-content
+    min-width: 100%
     padding: 0 .25rem .5rem 0
     scrollbar-width: thin
     scrollbar-color: $primary $clr-white
 
     @include sm-breakpoint
+        width: 100%
         min-width: 100%
         flex-direction: column
         height: auto
@@ -197,7 +174,8 @@
     min-width: 0
 
     .input
-        width: 100%
+        width: 7.5rem
+        max-width: 100%
         min-width: 0
         padding-left: .45rem
         padding-right: .25rem
@@ -205,13 +183,16 @@
 
 .kanban-card-footer
     display: grid
-    grid-template-columns: auto minmax(0, 1fr) minmax(0, 1fr)
+    grid-template-columns: minmax(0, 1fr) minmax(7.5rem, 1fr) minmax(0, 1fr)
     align-items: center
     gap: .45rem
     margin-top: .35rem
 
     .kanban-deadline
         justify-self: center
+
+    .kanban-assignee
+        justify-self: end
 
     .kanban-button,
     .kanban-assignee,
@@ -237,31 +218,8 @@
     text-decoration: none
     border-radius: 100px
 
-.kanban__drop-preview
-    position: relative
-    margin: 10px
-    background-color: $clr-white
-    border: 2px dashed rgba(0, 0, 0, 0.059) !important
-    border-radius: 4px
+.kanban__chosen
+    box-shadow: 0 2px 8px rgba(0, 0, 0, .16)
 
-    &::before
-        position: absolute
-        top: 50%
-        left: 50%
-        color: $clr-gray
-        content: ""
-        font-weight: bold
-        transform: translate(-50%, -50%)
-
-    &::after
-        position: absolute
-        top: 50%
-        left: 27%
-        width: 20px
-        height: 20px
-        content: ""
-        transform: translate(-50%, -50%)
-
-.hide .kanban-card,
-.hide .card
-    opacity: 0
+.kanban__ghost
+    opacity: .35

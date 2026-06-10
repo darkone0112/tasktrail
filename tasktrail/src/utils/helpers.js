@@ -33,6 +33,17 @@ export const CONTENT_TYPES = Object.freeze({
 	XML: "text/xml"
 });
 
+export const TASK_PRIORITY_COLORS = Object.freeze([
+	"#48c78e",
+	"#ffe08a",
+	"#f14668"
+]);
+
+export function getTaskPriorityColor(priority = 0) {
+	const priorityIndex = Number(priority);
+	return TASK_PRIORITY_COLORS[priorityIndex] || TASK_PRIORITY_COLORS[0];
+}
+
 export async function addTask(name, date) {
 	try {
 		await fetch(
@@ -141,10 +152,10 @@ export async function deleteKanbanBoard(boardId) {
 	return apiRequest(`/api/kanban/boards/${boardId}`, FETCH_OPTIONS(FETCH_METHODS.DELETE, CONTENT_TYPES.JSON));
 }
 
-export async function createKanbanColumn(boardId, title, color) {
+export async function createKanbanColumn(boardId, title) {
 	return apiRequest(
 		"/api/kanban/columns",
-		FETCH_OPTIONS(FETCH_METHODS.POST, CONTENT_TYPES.JSON, JSON.stringify({ boardId, title, color }))
+		FETCH_OPTIONS(FETCH_METHODS.POST, CONTENT_TYPES.JSON, JSON.stringify({ boardId, title }))
 	);
 }
 

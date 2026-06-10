@@ -27,7 +27,7 @@
             article.card.task-overview-card(
                 v-for="task in personalTasks"
                 :key="taskKey(task)"
-                :style="{ borderLeft: `5px solid ${task.columnColor}` }"
+                :style="{ borderLeft: `5px solid ${taskColor(task)}` }"
             )
                 .card-content
                     .task-overview-main
@@ -40,7 +40,7 @@
                         strong(:class="{ strikethrough: task.done }") {{ task.name }}
                     .task-overview-meta
                         span.tag.is-light {{ task.boardName }}
-                        span.tag(:style="{ backgroundColor: task.columnColor }") {{ task.columnTitle }}
+                        span.tag(:style="{ backgroundColor: taskColor(task) }") {{ task.columnTitle }}
                         label.task-deadline-control
                             span {{ $t('tasks.modal.deadline') }}
                             input.input.is-small(
@@ -65,7 +65,7 @@
             article.card.task-overview-card(
                 v-for="task in assignedTasks"
                 :key="taskKey(task)"
-                :style="{ borderLeft: `5px solid ${task.columnColor}` }"
+                :style="{ borderLeft: `5px solid ${taskColor(task)}` }"
             )
                 .card-content
                     .task-overview-main
@@ -78,7 +78,7 @@
                         strong(:class="{ strikethrough: task.done }") {{ task.name }}
                     .task-overview-meta
                         span.tag.is-primary.is-light {{ task.boardName }}
-                        span.tag(:style="{ backgroundColor: task.columnColor }") {{ task.columnTitle }}
+                        span.tag(:style="{ backgroundColor: taskColor(task) }") {{ task.columnTitle }}
                         label.task-deadline-control
                             span {{ $t('tasks.modal.deadline') }}
                             input.input.is-small(
@@ -97,6 +97,7 @@ import {
     createPersonalKanbanTask,
     deleteKanbanTask,
     getKanbanTaskOverview,
+    getTaskPriorityColor,
     updateKanbanTaskDueDate,
     updateKanbanTaskStatus
 } from '../utils/helpers'
@@ -113,6 +114,9 @@ export default {
         }
     },
     methods: {
+        taskColor(task) {
+            return getTaskPriorityColor(task.priority)
+        },
         taskKey(task) {
             return `${task.userid}-${task.id}`
         },

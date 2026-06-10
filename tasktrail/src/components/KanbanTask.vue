@@ -1,6 +1,6 @@
 <template lang="pug">
 
-.item.kanban-task(:style="{ borderLeft: `5px solid ${column.color}` }")
+.item.kanban-task(:style="{ borderLeft: `5px solid ${priorityColor}` }")
     .kanban-card
         span.card
             .kanban-action
@@ -30,12 +30,12 @@
                 .kanban-button
                     .dropdown(:class="{ 'is-active': isOpen }")
                         .dropdown-trigger
-                            button.button(aria-haspopup='true' aria-controls='dropdown-menu' @click='toggleDropdown' :style="{ backgroundColor: column.color }")
+                            button.button(aria-haspopup='true' aria-controls='dropdown-menu' @click='toggleDropdown' :style="{ backgroundColor: priorityColor }")
                                 span {{ (this.task.priority !== null) ? this.getPriorityName(task.priority) : "" }}
                                 span.icon.is-small
                                     i.fas.fa-angle-down(aria-hidden='true')
                         #dropdown-menu.dropdown-menu(role='menu')
-                            .dropdown-content(:style="{ backgroundColor: column.color }")
+                            .dropdown-content
                                 a(v-for='priority, index in priorities' :key='index' :class="{ 'dropdown-item': true, 'is-active': task.priority === index }" @click='selectOption(index)')
                                     | {{ priority.name }}
                 .kanban-deadline
@@ -57,6 +57,8 @@
                         span {{ task.assignee.username }}
 </template>
 <script>
+import { getTaskPriorityColor } from '../utils/helpers'
+
 export default {
     name: "KanbanTask",
     props: {
@@ -102,6 +104,9 @@ export default {
         };
     },
     computed: {
+        priorityColor() {
+            return getTaskPriorityColor(this.task.priority);
+        },
         deadlineValue() {
             return this.task.due_date ? String(this.task.due_date).slice(0, 10) : "";
         },
