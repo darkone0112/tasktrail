@@ -8,28 +8,66 @@
     > .button
         margin-bottom: .75rem
 
+.kanban-color-picker
+    display: flex
+    align-items: center
+    gap: .75rem
+
+    > input[type="color"]
+        width: 4rem
+        padding: .2rem
+
+.kanban-color-swatches
+    display: flex
+    flex-wrap: wrap
+    gap: .4rem
+
+.kanban-color-swatch
+    width: 1.75rem
+    height: 1.75rem
+    padding: 0
+    border: 2px solid transparent
+    border-radius: 50%
+    cursor: pointer
+
+    &.is-selected
+        border-color: $clr-gray-dark
+        box-shadow: 0 0 0 2px $clr-white
+
 .kanban-wrapper
-    overflow: auto
-    height: 58vh
+    overflow-x: auto
+    overflow-y: hidden
+    height: calc(100vh - 15rem)
+    min-height: 30rem
+    padding-bottom: .5rem
 
 .kanban-board
-    display: grid
-    grid-template-rows: 1fr
-    grid-template-columns: repeat(8, 1fr)
+    display: flex
+    align-items: stretch
     gap: 1em
-    max-height: 72vh
-    padding: 0 0 2em
+    height: 100%
+    min-width: max-content
+    padding: 0 .25rem .5rem 0
     scrollbar-width: thin
     scrollbar-color: $primary $clr-white
 
     @include sm-breakpoint
-        grid-template-columns: 1fr
+        min-width: 100%
+        flex-direction: column
+        height: auto
 
 .kanban-column
+    display: flex
+    flex: 0 0 22rem
+    flex-direction: column
+    min-height: 0
     border: 1px solid $clr-white
     border-radius: 5px
-    padding: 2em 1.4em
-    width: fit-content
+    padding: 1.25rem 1rem .75rem
+    overflow: hidden
+
+    > div:first-child
+        flex: 0 0 auto
 
     &-buttons
         display: flex
@@ -38,6 +76,9 @@
 
     @include sm-breakpoint
         width: 100%
+        flex-basis: auto
+        min-height: 28rem
+        max-height: 70vh
 
         &-title
             width: 100%
@@ -46,22 +87,23 @@
             justify-content: flex-start
 
 .kanban-cards
+    flex: 1 1 auto
     min-height: $kanban-task-height * 1.25
-    margin: 5px 0
+    margin: .5rem -.35rem 0 0
+    padding-right: .35rem
     gap: 1rem
-    overflow-y: visible
-    scrollbar-width: none
-    width: $kanban-task-width
-
-    &::-webkit-scrollbar
-        display: none
+    overflow-x: hidden
+    overflow-y: auto
+    scrollbar-width: thin
+    scrollbar-color: $primary transparent
+    width: 100%
 
     @include sm-breakpoint
         width: 100%
 
 .column-title
     padding-left: 0
-    width: 12.5rem
+    width: 100%
 
     &[disabled]
         border: 0
@@ -118,8 +160,12 @@
 .kanban-assignee
     min-width: 0
 
+    .select
+        width: 100%
+
     .select select
-        max-width: 9rem
+        width: 100%
+        max-width: none
 
 .kanban-drag-handle
     display: flex
@@ -148,10 +194,33 @@
     cursor: initial
 
 .kanban-deadline
-    margin: .35rem 0 .65rem
+    min-width: 0
 
-    .label
-        margin-bottom: .2rem
+    .input
+        width: 100%
+        min-width: 0
+        padding-left: .45rem
+        padding-right: .25rem
+        font-size: .72rem
+
+.kanban-card-footer
+    display: grid
+    grid-template-columns: auto minmax(0, 1fr) minmax(0, 1fr)
+    align-items: center
+    gap: .45rem
+    margin-top: .35rem
+
+    .kanban-deadline
+        justify-self: center
+
+    .kanban-button,
+    .kanban-assignee,
+    .kanban-deadline
+        min-width: 0
+
+.kanban-task
+    width: 100%
+    margin: .5rem 0
 
 .kanban-card-actions
     display: flex

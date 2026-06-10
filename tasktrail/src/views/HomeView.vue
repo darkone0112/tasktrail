@@ -1,99 +1,136 @@
 <template lang="pug">
+.home-dashboard
+    .home-dashboard-header
+        div
+            h1.title.is-size-3-mobile.is-size-2-desktop {{ welcomeMessage }}, {{ username }}
+            p.subtitle.is-size-5 {{ $t('home.dashboard.now') }}
+                span.time {{ time }}
+        .home-dashboard-actions
+            router-link.button.is-primary(to="/u/kanban")
+                span.icon
+                    i.fas.fa-thumbtack
+                span {{ $t('home.dashboard.openKanban') }}
+            router-link.button.is-light(to="/u/tasks")
+                span.icon
+                    i.fas.fa-list-check
+                span {{ $t('home.dashboard.openTasks') }}
 
-.is-flex.is-justify-content-center.is-align-items-center.is-flex-direction-column
-    h1.title.is-size-3-mobile.is-size-2-desktop {{ welcomeMessage }}, {{ user }}
-    h2.subtitle.is-size-4-mobile.is-size-3-desktop {{ $t('home.dashboard.now') }} 
-        span.time {{ time }}
+    .home-stats
+        article.home-stat
+            span.icon.has-text-primary
+                i.fas.fa-table-columns
+            div
+                strong {{ boards.length }}
+                span {{ $t('home.dashboard.boards') }}
+        article.home-stat
+            span.icon.has-text-success
+                i.fas.fa-user
+            div
+                strong {{ personalTasks.length }}
+                span {{ $t('home.dashboard.personalTasks') }}
+        article.home-stat
+            span.icon.has-text-info
+                i.fas.fa-user-check
+            div
+                strong {{ assignedTasks.length }}
+                span {{ $t('home.dashboard.assignedTasks') }}
+        article.home-stat
+            span.icon.has-text-danger
+                i.fas.fa-calendar-day
+            div
+                strong {{ upcomingDeadlines.length }}
+                span {{ $t('home.dashboard.upcoming') }}
 
-    .columns.is-flex-mobile
-        router-link.column(
-            v-for="route, index in routes"
-            v-if="index > 1 && route.meta.group === $t('home.group')"
-            :key="route.name"
-            :to="route.path"
-        )
-            span.icon.is-large
-                span.fa-stack.fa-xl
-                    i.fas.fa-circle.fa-stack-2x
-                    i.fas.fa-stack-1x.fa-inverse(:class="route.meta.classname")
+    .home-panels
+        section.home-panel
+            .home-panel-heading
+                h2.title.is-5 {{ $t('home.dashboard.pendingTasks') }}
+                router-link(to="/u/calendar") {{ $t('home.dashboard.calendarLink') }}
+            .home-deadline-list(v-if="upcomingDeadlines.length")
+                article.home-deadline(v-for="deadline in upcomingDeadlines" :key="taskKey(deadline)")
+                    div
+                        strong {{ deadline.name }}
+                        p {{ deadline.boardName }} · {{ deadline.columnTitle }}
+                    time {{ formatDeadline(deadline.dueDate) }}
+            .notification.is-light(v-else) {{ $t('home.dashboard.noTasks') }}
 
-    h2.subtitle.is-size-4-mobile.is-size-3-desktop {{ deadlines.length > 0 ? $t('home.dashboard.pendingTasks') : $t('home.dashboard.noTasks') }}
-
-    table.table
-        tbody
-            tr(v-for="deadline in deadlines")
-                th {{ deadline.name }}
-                td {{ new Date(deadline.dueDate).toLocaleDateString($t('home.dashboard.dateLang'), { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }) }}
+        section.home-panel
+            .home-panel-heading
+                h2.title.is-5 {{ $t('home.dashboard.quickAccess') }}
+            .home-board-list(v-if="boards.length")
+                router-link.home-board(v-for="board in boards.slice(0, 6)" :key="board.id" to="/u/kanban")
+                    span.icon
+                        i.fas(:class="board.visibility === 'PERSONAL' ? 'fa-user-lock' : 'fa-users'")
+                    div
+                        strong {{ board.name }}
+                        small {{ $t(`kanban.boards.visibility.${board.visibility.toLowerCase()}`) }}
 </template>
 
 <script>
 import alertify from 'alertifyjs'
-import { routes, user } from '../router/index'
-import { getKanbanTaskOverview, alertifysettings, applyTheme } from '../utils/helpers'
+import { user } from '../router/index'
+import { getKanbanBoards, getKanbanTaskOverview, alertifysettings, applyTheme } from '../utils/helpers'
 
 export default {
     name: 'Home',
     data() {
         return {
-            routes: routes.filter(route => { return route.meta }),
-
-            welcomeMessage: "",
-            user: "",
-
-            time: "",
-            deadlines: [],
+            welcomeMessage: '',
+            username: user.username,
+            time: '',
+            boards: [],
+            personalTasks: [],
+            assignedTasks: [],
+            interval: null,
         }
+    },
+    computed: {
+        upcomingDeadlines() {
+            return [...this.personalTasks, ...this.assignedTasks]
+                .filter(task => !task.done && task.dueDate)
+                .sort((a, b) => new Date(a.dueDate) - new Date(b.dueDate))
+                .slice(0, 6)
+        },
+    },
+    methods: {
+        taskKey(task) {
+            return `${task.userid}-${task.id}`
+        },
+        formatDeadline(date) {
+            return new Date(date).toLocaleDateString(this.$i18n.locale, {
+                year: 'numeric',
+                month: 'short',
+                day: 'numeric',
+            })
+        },
+        updateTime() {
+            this.time = Intl.DateTimeFormat(this.$i18n.locale, {
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit',
+                hour12: false,
+            }).format()
+
+            const hour = new Date().getHours()
+            if (hour >= 21 || hour < 6) this.welcomeMessage = this.$t('home.dashboard.welcomeNight')
+            else if (hour >= 13) this.welcomeMessage = this.$t('home.dashboard.welcomeEvening')
+            else this.welcomeMessage = this.$t('home.dashboard.welcomeDay')
+        },
+    },
+    async mounted() {
+        const [boards, overview] = await Promise.all([getKanbanBoards(), getKanbanTaskOverview()])
+        this.boards = boards
+        this.personalTasks = overview.personal
+        this.assignedTasks = overview.assigned
+        this.updateTime()
+        this.interval = setInterval(this.updateTime, 1000)
     },
     beforeUnmount() {
         clearInterval(this.interval)
     },
     created() {
-        applyTheme();
-
-        const language = navigator.language
-        const TIME_OPTIONS = { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false }
-
-        const formatTime = () => Intl.DateTimeFormat(language, TIME_OPTIONS).format()
-
-        const interval = setInterval(() => {
-            this.time = formatTime()
-        }, 1000)
-
-        this.time = formatTime()
-
         alertify.defaults = alertifysettings
+        applyTheme()
     },
-    async mounted() {
-        this.deadlines = await this.getDeadlines()
-        this.user = await user.username
-
-        const hour = Number(this.time.split(":")[0]);
-        const welcomeMessages = [
-            { hourRange: [21, 23], message: this.$t('home.dashboard.welcomeNight') },
-            { hourRange: [13, 20], message: this.$t('home.dashboard.welcomeEvening') },
-            { hourRange: [0, 12], message: this.$t('home.dashboard.welcomeDay') }
-        ];
-
-        let welcomeMessage = '';
-
-        for (const { hourRange, message } of welcomeMessages) {
-            if (hour >= hourRange[0] && hour <= hourRange[1]) {
-                welcomeMessage = message
-                break
-            }
-        }
-
-        this.welcomeMessage = welcomeMessage
-    },
-    methods: {
-        async getDeadlines() {
-            const MAX_TASKS = 5
-            const overview = await getKanbanTaskOverview()
-            return [...overview.personal, ...overview.assigned]
-                .filter(task => !task.done && task.dueDate)
-                .sort((a, b) => new Date(a.dueDate) - new Date(b.dueDate))
-                .slice(0, MAX_TASKS)
-        }
-    },
-};
+}
 </script>

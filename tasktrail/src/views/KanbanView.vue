@@ -35,7 +35,14 @@
                 v-for="column in columns" :key="column.id"
             )
 
-                KanbanColumnButtons(:column="column" :board-id="selectedBoard.id" @delete="deleteColumn(column)" @updateColumn="save()")
+                KanbanColumnButtons(
+                    :column="column"
+                    :board-id="selectedBoard.id"
+                    @delete="deleteColumn(column)"
+                    @updateColumn="save()"
+                    @refresh="getKanban()"
+                    @error="showError"
+                )
 
                 draggable.kanban-cards(
                     :list="column.tasks"
@@ -78,6 +85,7 @@ import {
     applyTheme,
     assignKanbanTask,
     createKanbanBoard,
+    createKanbanColumn,
     deleteKanbanBoard,
     deleteKanbanColumn,
     deleteKanbanTask,
@@ -111,7 +119,9 @@ export default {
             newBoardName: "",
             newBoardVisibility: "TEAM",
             assignmentUsers: [],
-            isAdmin: user?.role === "ADMIN"
+            isAdmin: user?.role === "ADMIN",
+            savePromise: Promise.resolve(),
+            kanbanLoadVersion: 0
         }
     },
     computed: {
@@ -122,6 +132,9 @@ export default {
     methods: {
         taskKey(task) {
             return `${task.userid}-${task.id}`
+        },
+        showError(error) {
+            alertify.error(error.message || String(error))
         },
         async loadBoards(preferredBoardId = null) {
             this.boards = await getKanbanBoards()
@@ -181,14 +194,12 @@ export default {
             )
         },
         async addColumn(title, color) {
-            if (title) {
-                this.columns.push({
-                    id: null,
-                    title: title,
-                    color: color,
-                    tasks: [],
-                })
-                await this.save()
+            if (!title || !this.selectedBoard) return
+            try {
+                await createKanbanColumn(this.selectedBoard.id, title, color)
+                await this.getKanban()
+            } catch (error) {
+                alertify.error(error.message)
             }
         },
         async deleteColumn(column) {
@@ -200,11 +211,27 @@ export default {
             await this.getKanban()
         },
         async getKanban() {
-            this.columns = this.selectedBoard ? await getKanban(this.selectedBoard.id) : []
+            if (!this.selectedBoard) {
+                this.columns = []
+                return
+            }
+
+            const boardId = this.selectedBoard.id
+            const loadVersion = ++this.kanbanLoadVersion
+            const columns = await getKanban(boardId)
+            if (loadVersion === this.kanbanLoadVersion && this.selectedBoard?.id === boardId) {
+                this.columns = columns
+            }
         },
         async save() {
-            await saveBoardKanban(this.selectedBoard.id, this.columns)
-            await this.getKanban()
+            const boardId = this.selectedBoard.id
+            const snapshot = JSON.parse(JSON.stringify(this.columns))
+            this.savePromise = this.savePromise
+                .catch(() => {})
+                .then(() => saveBoardKanban(boardId, snapshot))
+                .then(() => this.selectedBoard?.id === boardId ? this.getKanban() : null)
+                .catch(error => alertify.error(error.message))
+            return this.savePromise
         }
     },
     created() {

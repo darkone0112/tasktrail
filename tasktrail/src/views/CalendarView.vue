@@ -41,6 +41,11 @@ export default {
                 },
                 initialView: 'dayGridMonth',
                 dayMaxEvents: 3,
+                buttonIcons: false,
+                buttonText: {
+                    prev: '‹',
+                    next: '›',
+                },
 
                 // Allow drag and drop
                 editable: true,
@@ -67,6 +72,11 @@ export default {
                 },
                 initialView: 'listWeek',
                 dayMaxEvents: 3,
+                buttonIcons: false,
+                buttonText: {
+                    prev: '‹',
+                    next: '›',
+                },
             }
         }
     },

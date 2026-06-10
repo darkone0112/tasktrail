@@ -141,6 +141,13 @@ export async function deleteKanbanBoard(boardId) {
 	return apiRequest(`/api/kanban/boards/${boardId}`, FETCH_OPTIONS(FETCH_METHODS.DELETE, CONTENT_TYPES.JSON));
 }
 
+export async function createKanbanColumn(boardId, title, color) {
+	return apiRequest(
+		"/api/kanban/columns",
+		FETCH_OPTIONS(FETCH_METHODS.POST, CONTENT_TYPES.JSON, JSON.stringify({ boardId, title, color }))
+	);
+}
+
 export async function saveBoardKanban(boardId, kanban) {
 	return apiRequest(
 		"/api/save/kanban",

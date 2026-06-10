@@ -1,13 +1,91 @@
-.home
-    overflow-y: auto
-.time
-    @include sm-breakpoint
-        display: block
+.home-dashboard
+    display: grid
+    gap: 1.5rem
 
-.table
-    background-color: $clr-white
-    border-radius: 5px
-    width: fit-content !important
+.home-dashboard-header,
+.home-panel-heading,
+.home-deadline,
+.home-board,
+.home-stat
+    display: flex
+    align-items: center
 
-.table td
-    text-align: right !important
+.home-dashboard-header,
+.home-panel-heading,
+.home-deadline
+    justify-content: space-between
+    gap: 1rem
+
+.home-dashboard-actions
+    display: flex
+    flex-wrap: wrap
+    gap: .75rem
+
+.home-stats
+    display: grid
+    grid-template-columns: repeat(4, minmax(0, 1fr))
+    gap: 1rem
+
+.home-stat,
+.home-panel
+    padding: 1.25rem
+    background: $clr-white
+    border: 1px solid $clr-gray-transparency
+    border-radius: 8px
+    box-shadow: 0 1px 4px rgba(0, 0, 0, .08)
+
+.home-stat
+    gap: .9rem
+
+    .icon
+        font-size: 1.4rem
+
+    div
+        display: grid
+
+    strong
+        font-size: 1.6rem
+
+.home-panels
+    display: grid
+    grid-template-columns: minmax(0, 1.4fr) minmax(18rem, .6fr)
+    gap: 1rem
+
+.home-deadline-list,
+.home-board-list
+    display: grid
+    gap: .65rem
+    margin-top: 1rem
+
+.home-deadline,
+.home-board
+    padding: .8rem
+    border-radius: 6px
+    background: rgba(127, 127, 127, .08)
+
+.home-deadline
+    p,
+    time
+        font-size: .8rem
+
+.home-board
+    gap: .75rem
+    color: inherit
+
+    div
+        display: grid
+
+@include md-breakpoint
+    .home-stats
+        grid-template-columns: repeat(2, minmax(0, 1fr))
+
+    .home-panels
+        grid-template-columns: 1fr
+
+@include sm-breakpoint
+    .home-dashboard-header
+        align-items: flex-start
+        flex-direction: column
+
+    .home-stats
+        grid-template-columns: 1fr

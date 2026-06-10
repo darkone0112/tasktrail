@@ -13,7 +13,18 @@ div(@keyup.esc="isActive = false")
                     input.input(type="text" :placeholder="$t('kanban.modal.placeholder')" required v-model="columnName")
                 .field
                     .label {{ $t('kanban.modal.color') }}:
-                    SwatchPicker(:value="columnColor" :defaultColors="defaultColors" @input="updateColor")
+                    .kanban-color-picker
+                        input.input(type="color" v-model="columnColor")
+                        .kanban-color-swatches
+                            button.kanban-color-swatch(
+                                v-for="color in defaultColors"
+                                :key="color"
+                                type="button"
+                                :style="{ backgroundColor: color }"
+                                :class="{ 'is-selected': columnColor === color }"
+                                :aria-label="color"
+                                @click="columnColor = color"
+                            )
 
             .modal-card-foot.is-flex.is-justify-content-flex-end
                 button.button(@click="toggleCreateModal()") {{ $t('kanban.modal.cancel') }}
@@ -22,14 +33,9 @@ div(@keyup.esc="isActive = false")
 </template>
 
 <script>
-import { TwitterPicker } from 'vue-color'
-import 'vue-color/style.css'
 import { Helper } from '../../utils/helperClass.js'
 
 export default {
-    components: {
-        SwatchPicker: TwitterPicker,
-    },
     data() {
         return {
             columnName: "",
@@ -59,11 +65,9 @@ export default {
             this.$emit('add', name, color)
             this.toggleCreateModal()
         },
-        updateColor(value) {
-            this.columnColor = value.hex
-        },
         resetDefaults() {
             this.columnName = ""
+            this.columnColor = "#bae1ff"
         }
     }
 }

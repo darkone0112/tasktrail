@@ -13,12 +13,12 @@ div
             )
         .column.kanban-column-buttons 
             //-.is-flex.is-justify-content-flex-end.is-align-items-center
-            span.icon.is-clickable
-                i.fas.fa-add.has-text-success(@click="addTask(column)")
-            span.icon.is-clickable
-                i.fas.fa-edit.has-text-info(@click="editColumn(column)")
-            span.icon.is-clickable
-                i.fas.fa-trash.has-text-danger(@click="$emit('delete')")
+            span.icon.is-clickable(@click="addTask(column)")
+                i.fas.fa-add.has-text-success(:class="{ 'fa-spin': addingTask }")
+            span.icon.is-clickable(@click="editColumn(column)")
+                i.fas.fa-edit.has-text-info
+            span.icon.is-clickable(@click="$emit('delete')")
+                i.fas.fa-trash.has-text-danger
     .columns 
         .column 
             small.kanban__quantity {{ printRemainingTasks(column.tasks.length) }}
@@ -42,7 +42,8 @@ export default {
     },
     data() {
         return {
-            editable: false
+            editable: false,
+            addingTask: false
         }
     },
     methods: {
@@ -60,17 +61,21 @@ export default {
             this.$emit('updateColumn')
         },
         async addTask(column) {
-            await insertKanbanTask(this.boardId, column, { id: null, name: "", priority: 0 })
-            this.$emit('updateColumn')
+            if (this.addingTask) return
+            this.addingTask = true
+            try {
+                await insertKanbanTask(this.boardId, column, { id: null, name: "", priority: 0 })
+                this.$emit('refresh')
+            } catch (error) {
+                this.$emit('error', error)
+            } finally {
+                this.addingTask = false
+            }
         },
         printRemainingTasks(numberOfTasks) {
-            const TASK_STRING = "tarea"
-            const PLURALIZED_STRING = this.pluralizeString(numberOfTasks, TASK_STRING)
-
-            return `${PLURALIZED_STRING}`
-        },
-        pluralizeString(count, string, suffix = "s") {
-            return `${count} ${string}${count !== 1 ? suffix : ''}`
+            if (numberOfTasks === 0) return this.$t("kanban.taskCount.zero")
+            const key = numberOfTasks === 1 ? "one" : "many"
+            return this.$t(`kanban.taskCount.${key}`, { count: numberOfTasks })
         }
     }
 }

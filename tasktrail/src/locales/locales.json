@@ -35,7 +35,15 @@
                 "welcomeDay": "Good morning",
                 "now": "It is currently",
                 "pendingTasks": "Your pending tasks",
-                "noTasks": "You currently have no pending tasks"
+                "noTasks": "You currently have no pending tasks",
+                "openKanban": "Open kanban",
+                "openTasks": "Open tasks",
+                "boards": "Boards",
+                "personalTasks": "Personal tasks",
+                "assignedTasks": "Assigned tasks",
+                "upcoming": "Upcoming deadlines",
+                "calendarLink": "View calendar",
+                "quickAccess": "Board access"
             }
         },
         "tasks": {
@@ -104,6 +112,11 @@
             },
             "buttons": {
                 "newColumn": "New column"
+            },
+            "taskCount": {
+                "zero": "No cards",
+                "one": "{count} card",
+                "many": "{count} cards"
             },
             "boards": {
                 "current": "Current board",
@@ -231,7 +244,15 @@
                 "welcomeDay": "Buenos días",
                 "now": "Actualmente son las",
                 "pendingTasks": "Tus tareas pendientes",
-                "noTasks": "Actualmente no tienes tareas pendientes"
+                "noTasks": "Actualmente no tienes tareas pendientes",
+                "openKanban": "Abrir kanban",
+                "openTasks": "Abrir tareas",
+                "boards": "Tableros",
+                "personalTasks": "Tareas personales",
+                "assignedTasks": "Tareas asignadas",
+                "upcoming": "Próximas fechas límite",
+                "calendarLink": "Ver calendario",
+                "quickAccess": "Acceso a tableros"
             }
         },
         "tasks": {
@@ -300,6 +321,11 @@
             },
             "buttons": {
                 "newColumn": "Nueva columna"
+            },
+            "taskCount": {
+                "zero": "Sin tarjetas",
+                "one": "{count} tarjeta",
+                "many": "{count} tarjetas"
             },
             "boards": {
                 "current": "Tablero actual",

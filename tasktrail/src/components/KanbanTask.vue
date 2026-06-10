@@ -26,15 +26,7 @@
                     :class="{ 'strikethrough': task.done }"
                 )
 
-            .kanban-deadline
-                label.label.is-size-7 {{ $t('tasks.modal.deadline') }}
-                input.input.is-small(
-                    type="date"
-                    :value="deadlineValue"
-                    @change="$emit('deadline', $event.target.value)"
-                )
-
-            .kanban-action
+            .kanban-card-footer
                 .kanban-button
                     .dropdown(:class="{ 'is-active': isOpen }")
                         .dropdown-trigger
@@ -46,6 +38,14 @@
                             .dropdown-content(:style="{ backgroundColor: column.color }")
                                 a(v-for='priority, index in priorities' :key='index' :class="{ 'dropdown-item': true, 'is-active': task.priority === index }" @click='selectOption(index)')
                                     | {{ priority.name }}
+                .kanban-deadline
+                    input.input.is-small(
+                        type="date"
+                        :title="$t('tasks.modal.deadline')"
+                        :aria-label="$t('tasks.modal.deadline')"
+                        :value="deadlineValue"
+                        @change="$emit('deadline', $event.target.value)"
+                    )
                 .kanban-assignee
                     .select.is-small(v-if="canAssign")
                         select(:value="task.assigned_user_id || ''" @change="$emit('assign', $event.target.value)")
