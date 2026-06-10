@@ -491,6 +491,7 @@ async function ensureDefaultBoards(user) {
 		});
 		const migratedTasks = await prisma.kanbanTasks.findMany({
 			where: {
+				userid: user.id,
 				legacy_task_id: { in: legacyTasks.map(task => task.id) }
 			},
 			select: { legacy_task_id: true }

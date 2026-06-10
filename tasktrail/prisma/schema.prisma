@@ -57,7 +57,7 @@ model KanbanTasks {
     priority         Int
     done             Boolean   @default(false)
     due_date         DateTime?  @db.DateTime(0)
-    legacy_task_id   Int?       @unique
+    legacy_task_id   Int?
     kanbanColumnsId  Int
     userid           Int
     assigned_user_id Int?
@@ -67,6 +67,7 @@ model KanbanTasks {
 
     @@id([id, userid])
     @@index([assigned_user_id])
+    @@index([userid, legacy_task_id])
 }
 
 model KanbanColumns {
