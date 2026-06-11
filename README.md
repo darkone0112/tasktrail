@@ -42,6 +42,56 @@ docker compose up --build
 
 Open `http://localhost:3000`.
 
+### Network access and published ports
+
+For safety, the default Compose configuration publishes TaskTrail only on the
+host loopback interface:
+
+```yaml
+ports:
+  - "127.0.0.1:${TASKTRAIL_PORT:-3000}:3000"
+```
+
+This is intended for deployments behind Caddy, Nginx, a tunnel, or another
+reverse proxy running on the same host. Devices connecting directly to the
+server cannot reach this loopback address.
+
+To make TaskTrail directly accessible on a particular LAN, VPN, or Headscale
+interface, replace `127.0.0.1` in `compose.yaml` with that host interface's IP:
+
+```yaml
+ports:
+  - "192.168.1.10:${TASKTRAIL_PORT:-3000}:3000"
+```
+
+To listen on every host interface instead, omit the host IP or use `0.0.0.0`:
+
+```yaml
+ports:
+  - "${TASKTRAIL_PORT:-3000}:3000"
+```
+
+Binding to every interface can expose TaskTrail outside the intended network.
+Use an appropriate firewall and strong values for the database and cookie
+secrets.
+
+When clients use a different hostname, IP, scheme, or port, also set the public
+application URL in the root `.env` file:
+
+```dotenv
+APP_DOMAIN=http://192.168.1.10:3000
+```
+
+After changing a published port or bind address, recreate the application:
+
+```sh
+docker compose up -d --force-recreate
+```
+
+The development override follows the same rule and binds port `8080` to
+`127.0.0.1` by default. Change the `ports` entry in `compose.dev.yaml` if the
+Webpack development server must be accessed from another machine.
+
 For hot-reload development, apply the development override:
 
 ```sh

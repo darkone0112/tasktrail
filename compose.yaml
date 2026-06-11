@@ -7,7 +7,7 @@ services:
       NODE_ENV: production
       PORT: 3000
       APP_NAME: TaskTrail
-      APP_DOMAIN: http://localhost:${TASKTRAIL_PORT:-3000}
+      APP_DOMAIN: ${APP_DOMAIN:-http://localhost:3000}
       DATABASE_URL: mysql://tasktrail:${TASKTRAIL_DB_PASSWORD:-tasktrail-dev}@db:3306/tasktrail
       COOKIE_KEYS: ${TASKTRAIL_COOKIE_KEYS:-replace-this-key-before-deployment}
       MAIL_USER: ${MAIL_USER:-}
@@ -18,7 +18,7 @@ services:
       GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
       GOOGLE_CALLBACK_URL: ${GOOGLE_CALLBACK_URL:-}
     ports:
-      - "${TASKTRAIL_PORT:-3000}:3000"
+      - "127.0.0.1:${TASKTRAIL_PORT:-3000}:3000"
     volumes:
       - uploads:/app/public/media/images/uploads
     depends_on:
