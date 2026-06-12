@@ -93,6 +93,7 @@
             "title": "📌 Kanban",
             "desc": "Productivity and stuff.",
             "group": "General",
+            "loading": "Loading Kanban",
             "taskPriority": {
                 "low": "Low",
                 "normal": "Normal",
@@ -302,6 +303,7 @@
             "title": "📌 Kanban",
             "desc": "Productividad y esas cosas.",
             "group": "General",
+            "loading": "Cargando Kanban",
             "taskPriority": {
                 "low": "Baja",
                 "normal": "Normal",

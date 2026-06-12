@@ -1,11 +1,12 @@
 import { createApp } from "vue";
 import App from "./App.vue";
 import router, { initializeUser } from "./router";
-import { i18n } from "./utils/helpers";
+import { applyTheme, i18n } from "./utils/helpers";
 import "./styles/index.sass";
 
 async function bootstrap() {
 	try {
+		applyTheme();
 		await initializeUser();
 		createApp(App).use(router).use(i18n).mount("#app");
 	} catch (error) {

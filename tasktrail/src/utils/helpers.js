@@ -339,48 +339,32 @@ export const alertifysettings = {
 export function applyTheme(theme = null) {
 	const defaultTheme = { styleName: "" };
 	const localStorageTheme = localStorage.getItem("theme");
+	const themeClasses = ["dark-theme", "high-contrast-theme"];
 
 	if (theme != null) {
-		theme = theme;
+		theme = Array.isArray(theme) ? theme[0] : theme;
 	} else if (localStorageTheme) {
-		theme = JSON.parse(localStorageTheme)[0];
+		try {
+			const savedTheme = JSON.parse(localStorageTheme);
+			theme = Array.isArray(savedTheme) ? savedTheme[0] : savedTheme;
+		} catch (error) {
+			localStorage.removeItem("theme");
+			theme = defaultTheme;
+		}
 	} else {
 		theme = defaultTheme;
 	}
 
 	const htmlElement = document.documentElement;
 	const bodyElement = document.body;
+	const styleName = themeClasses.includes(theme?.styleName) ? theme.styleName : "";
 
-	if (theme.hasOwnProperty("0")) {
-		htmlElement.classList.forEach(className => {
-			if (className !== theme[0].styleName) {
-				htmlElement.classList.remove(className);
-			}
-		});
-		bodyElement.classList.forEach(className => {
-			if (className !== theme[0].styleName) {
-				bodyElement.classList.remove(className);
-			}
-		});
+	htmlElement.classList.remove(...themeClasses);
+	bodyElement?.classList.remove(...themeClasses);
 
-		htmlElement.classList.add(theme[0].styleName);
-		bodyElement.classList.add(theme[0].styleName);
-	} else {
-		htmlElement.classList.forEach(className => {
-			if (className !== theme.styleName) {
-				htmlElement.classList.remove(className);
-			}
-		});
-		bodyElement.classList.forEach(className => {
-			if (className !== theme.styleName) {
-				bodyElement.classList.remove(className);
-			}
-		});
-
-		if (theme.styleName != "") {
-			htmlElement.classList.add(theme.styleName);
-			bodyElement.classList.add(theme.styleName);
-		}
+	if (styleName) {
+		htmlElement.classList.add(styleName);
+		bodyElement?.classList.add(styleName);
 	}
 }
 //#endregion

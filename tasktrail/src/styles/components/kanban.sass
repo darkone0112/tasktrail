@@ -11,9 +11,18 @@
 .kanban-wrapper
     overflow-x: auto
     overflow-y: hidden
+    position: relative
     height: calc(100vh - 15rem)
     min-height: 30rem
     padding-bottom: .5rem
+
+.kanban-loading
+    display: grid
+    place-items: center
+    width: 100%
+    height: 100%
+    color: $primary
+    font-size: 1.75rem
 
 .kanban-board
     display: flex

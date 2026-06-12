@@ -30,7 +30,11 @@
             KanbanModal(@add="addColumn")
 
     .kanban-wrapper
-        .kanban-board(v-if='!loading && selectedBoard')
+        .kanban-loading(v-if="loading" role="status" :aria-label="$t('kanban.loading')")
+            span.icon
+                i.fas.fa-spinner.fa-spin
+
+        .kanban-board(v-else-if="selectedBoard")
             .kanban-column(
                 v-for="column in columns" :key="column.id"
             )
@@ -73,7 +77,6 @@
                             @assign="assignTask(task, $event)"
                         )
 
-        KanbanColumnSkeleton(v-else-if="loading")
         .notification(v-else) {{ $t('kanban.boards.empty') }}
 
 </template>
@@ -98,7 +101,6 @@ import {
 import { user } from '../router'
 
 import KanbanTask from '../components/KanbanTask.vue'
-import KanbanColumnSkeleton from '../components/skeletons/KanbanColumnSkeleton.vue'
 import KanbanModal from '../components/modals/KanbanModal.vue'
 import KanbanColumnButtons from '../components/KanbanColumnButtons.vue'
 
@@ -107,7 +109,6 @@ export default {
     components: {
         KanbanTask,
         KanbanColumnButtons,
-        KanbanColumnSkeleton,
         KanbanModal,
         draggable
     },
