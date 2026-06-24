@@ -17,6 +17,9 @@ const cookieKeys = (process.env.COOKIE_KEYS || "p9qMAnmUc8g8c1teljsW,OMV16kITrlb
 	.split(",")
 	.map(key => key.trim())
 	.filter(Boolean);
+const configuredSessionMaxAgeDays = Number(process.env.SESSION_MAX_AGE_DAYS);
+const sessionMaxAgeDays = Number.isFinite(configuredSessionMaxAgeDays) && configuredSessionMaxAgeDays > 0 ? configuredSessionMaxAgeDays : 30;
+const sessionMaxAge = sessionMaxAgeDays * 24 * 60 * 60 * 1000;
 
 var indexRouter = require("./routes/index");
 var usersRouter = require("./routes/users");
@@ -27,7 +30,9 @@ var tokensRouter = require("./routes/tokens");
 app.use(
 	cookieSession({
 		name: "session",
-		keys: cookieKeys
+		keys: cookieKeys,
+		maxAge: sessionMaxAge,
+		sameSite: "lax"
 	})
 );
 

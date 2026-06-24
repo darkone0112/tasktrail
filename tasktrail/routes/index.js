@@ -12,6 +12,7 @@ const validator = require("validator");
 const hbs = require("nodemailer-express-handlebars");
 
 const passport = require("passport");
+const { getCurrentUser } = require("./access");
 
 const { SMTP_PORT, MAIL_HOST, MAIL_USER, MAIL_PASSWD, APP_NAME, APP_DOMAIN } = process.env;
 const { checkPasswords, setMailTransport, setHandlebar, setMailData, setTokenExpiracy } = require("./helpers");
@@ -22,19 +23,28 @@ const handlebarOptions = setHandlebar(".handlebars", path.join(__dirname, "../vi
 transporter.use("compile", hbs(handlebarOptions));
 
 //#region index
-router.get("/", function (req, res, next) {
-	res.render("index", { title: APP_NAME, consent: req.cookies.consent, lang: req.cookies.lang });
+router.get("/", async function (req, res, next) {
+	try {
+		const user = await getCurrentUser(req);
+		if (user && !user.disabled) return res.redirect("/u/home");
+		if (user?.disabled) req.session = null;
+
+		return res.render("index", { title: APP_NAME, consent: req.cookies.consent, lang: req.cookies.lang });
+	} catch (error) {
+		return next(error);
+	}
 });
 //#endregion
 
 //#region login
-function login(req, res, next) {
+async function login(req, res, next) {
 	const message = req.query.passwordChangedSuccess;
-	// compare if the session is an empty object
-	// if is not empty means theres a cookie session stablished
-	// so we redirect the user to the home page.
-	if (JSON.stringify(req.session) !== "{}") {
-		return res.redirect("/u/home");
+	try {
+		const user = await getCurrentUser(req);
+		if (user && !user.disabled) return res.redirect("/u/home");
+		if (user?.disabled) req.session = null;
+	} catch (error) {
+		return next(error);
 	}
 
 	let email = req.body.email;
