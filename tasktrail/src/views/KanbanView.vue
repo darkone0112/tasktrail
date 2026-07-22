@@ -72,12 +72,22 @@
                             @delete="deleteTask(task)"
                             @blurTask="save()"
                             @selectPriority="save()"
-                            @complete="save()"
                             @deadline="setDeadline(task, $event)"
                             @assign="assignTask(task, $event)"
+                            @details="openTaskDetails(task)"
                         )
 
         .notification(v-else) {{ $t('kanban.boards.empty') }}
+
+    KanbanTaskDetails(
+        v-if="activeTask"
+        :task="activeTask"
+        :details="taskDetails"
+        :loading="taskDetailsLoading"
+        :submitting="taskActivitySaving"
+        @close="closeTaskDetails"
+        @add-activity="addTaskActivity"
+    )
 
 </template>
 
@@ -96,6 +106,8 @@ import {
     getKanban,
     getKanbanBoards,
     getUsers,
+    getKanbanTaskDetails,
+    createKanbanTaskActivity,
     saveBoardKanban
 } from '../utils/helpers'
 import { user } from '../router'
@@ -103,6 +115,7 @@ import { user } from '../router'
 import KanbanTask from '../components/KanbanTask.vue'
 import KanbanModal from '../components/modals/KanbanModal.vue'
 import KanbanColumnButtons from '../components/KanbanColumnButtons.vue'
+import KanbanTaskDetails from '../components/modals/KanbanTaskDetails.vue'
 
 export default {
     name: 'Kanban',
@@ -110,6 +123,7 @@ export default {
         KanbanTask,
         KanbanColumnButtons,
         KanbanModal,
+        KanbanTaskDetails,
         draggable
     },
     data() {
@@ -123,7 +137,11 @@ export default {
             assignmentUsers: [],
             isAdmin: user?.role === "ADMIN",
             savePromise: Promise.resolve(),
-            kanbanLoadVersion: 0
+            kanbanLoadVersion: 0,
+            activeTask: null,
+            taskDetails: null,
+            taskDetailsLoading: false,
+            taskActivitySaving: false
         }
     },
     computed: {
@@ -210,7 +228,40 @@ export default {
         },
         async deleteTask(task) {
             await deleteKanbanTask(this.selectedBoard.id, task);
+            if (this.activeTask === task) this.closeTaskDetails()
             await this.getKanban()
+        },
+        async openTaskDetails(task) {
+            this.activeTask = task
+            this.taskDetails = null
+            this.taskDetailsLoading = true
+            try {
+                const details = await getKanbanTaskDetails(task)
+                if (this.activeTask === task) this.taskDetails = details
+            } catch (error) {
+                alertify.error(error.message)
+                this.closeTaskDetails()
+            } finally {
+                if (this.activeTask === task) this.taskDetailsLoading = false
+            }
+        },
+        closeTaskDetails() {
+            this.activeTask = null
+            this.taskDetails = null
+            this.taskDetailsLoading = false
+            this.taskActivitySaving = false
+        },
+        async addTaskActivity(body) {
+            if (!this.activeTask || this.taskActivitySaving) return
+            this.taskActivitySaving = true
+            try {
+                const activity = await createKanbanTaskActivity(this.activeTask, body)
+                if (this.taskDetails) this.taskDetails.activities.push(activity)
+            } catch (error) {
+                alertify.error(error.message)
+            } finally {
+                this.taskActivitySaving = false
+            }
         },
         async getKanban() {
             if (!this.selectedBoard) {

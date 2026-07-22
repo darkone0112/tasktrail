@@ -47,6 +47,26 @@ async function createKanbanTask(data) {
 	}
 }
 
+async function getKanbanTaskWithBoard(taskId, taskUserId) {
+	return prisma.kanbanTasks.findUnique({
+		where: {
+			id_userid: {
+				id: Number(taskId),
+				userid: Number(taskUserId)
+			}
+		},
+		include: {
+			KanbanColumns: {
+				select: {
+					id: true,
+					title: true,
+					board_id: true
+				}
+			}
+		}
+	});
+}
+
 router.use(requireUser);
 
 router.get("/get/session", async function (req, res, next) {
@@ -958,6 +978,98 @@ router.put("/kanban/tasks/:userid/:id/assignee", requireAdmin, async function (r
 		return res.json({
 			assignedUserId: updatedTask.assigned_user_id,
 			assignee: updatedTask.Assignee
+		});
+	} catch (error) {
+		return next(error);
+	}
+});
+
+router.get("/kanban/tasks/:userid/:id", async function (req, res, next) {
+	try {
+		const task = await getKanbanTaskWithBoard(req.params.id, req.params.userid);
+		if (!task?.KanbanColumns?.board_id) {
+			return res.status(404).json({ error: "Task not found" });
+		}
+
+		const board = await getAccessibleBoard(req.currentUser, task.KanbanColumns.board_id, false);
+		if (!board) return res.status(404).json({ error: "Board not found" });
+
+		const details = await prisma.kanbanTasks.findUnique({
+			where: {
+				id_userid: {
+					id: task.id,
+					userid: task.userid
+				}
+			},
+			include: {
+				Assignee: {
+					select: { id: true, username: true }
+				},
+				KanbanColumns: {
+					select: { id: true, title: true }
+				},
+				Activities: {
+					orderBy: { created_at: "asc" },
+					include: {
+						Author: {
+							select: { id: true, username: true, img: true }
+						}
+					}
+				}
+			}
+		});
+
+		return res.json({
+			...details,
+			assignee: details.Assignee,
+			column: details.KanbanColumns,
+			activities: details.Activities.map(activity => ({
+				...activity,
+				author: activity.Author,
+				Author: undefined
+			})),
+			Assignee: undefined,
+			KanbanColumns: undefined,
+			Activities: undefined
+		});
+	} catch (error) {
+		return next(error);
+	}
+});
+
+router.post("/kanban/tasks/:userid/:id/activities", async function (req, res, next) {
+	try {
+		const body = String(req.body.body || "").trim();
+		if (!body || body.length > 1000) {
+			return res.status(400).json({ error: "An update must be between 1 and 1000 characters" });
+		}
+
+		const task = await getKanbanTaskWithBoard(req.params.id, req.params.userid);
+		if (!task?.KanbanColumns?.board_id) {
+			return res.status(404).json({ error: "Task not found" });
+		}
+
+		const board = await getAccessibleBoard(req.currentUser, task.KanbanColumns.board_id, false);
+		if (!board) return res.status(404).json({ error: "Board not found" });
+
+		const activity = await prisma.kanbanTaskActivities.create({
+			data: {
+				task_id: task.id,
+				task_userid: task.userid,
+				user_id: req.currentUser.id,
+				body
+			},
+			include: {
+				Author: {
+					select: { id: true, username: true, img: true }
+				}
+			}
+		});
+
+		return res.status(201).json({
+			...activity,
+			author: activity.Author,
+			Author: undefined
 		});
 	} catch (error) {
 		return next(error);

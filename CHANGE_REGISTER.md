@@ -78,3 +78,36 @@ Files:
 
 Verification: `git diff --check` passed. Browser/build verification remains
 pending because Node.js is not installed on the current environment PATH.
+
+## 2026-07-22T14:58:00+02:00 - Redesigned Kanban cards and added activity history
+
+Reason/result: Removed the card ID and completed checkbox, moved the deadline
+to the card header, added display-only `#tag` rendering, and introduced a
+detailed card view with persistent authored activity entries.
+
+Files:
+- `tasktrail/prisma/schema.prisma`
+- `tasktrail/prisma/migrations/20260722145411_add_kanban_task_activities/migration.sql`
+- `tasktrail/routes/api.js`
+- `tasktrail/src/components/KanbanTask.vue`
+- `tasktrail/src/components/modals/KanbanTaskDetails.vue`
+- `tasktrail/src/locales/locales.json`
+- `tasktrail/src/styles/components/kanban.sass`
+- `tasktrail/src/utils/helpers.js`
+- `tasktrail/src/views/KanbanView.vue`
+
+Verification: Locale JSON and `git diff --check` passed. Runtime, Prisma, and
+browser checks remain pending because Node.js is not installed on the current
+environment PATH.
+
+## 2026-07-22T15:02:07+02:00 - Defined append-only change register ordering
+
+Reason/result: Documented that change records must be appended as the final
+entry, preserving strict chronological order and avoiding ambiguous insertion
+anchors.
+
+Files:
+- `agents.md`
+- `CHANGE_REGISTER.md`
+
+Verification: Confirmed this record is the final entry in the register.

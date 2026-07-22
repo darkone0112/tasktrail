@@ -103,6 +103,21 @@
                 "unassigned": "Unassigned",
                 "completed": "Completed"
             },
+            "card": {
+                "openDetails": "Open card details",
+                "closeDetails": "Close card details",
+                "untitled": "Untitled card",
+                "column": "Column",
+                "priority": "Priority",
+                "deadline": "Deadline",
+                "noDeadline": "No deadline",
+                "assignee": "Assignee",
+                "activity": "Activity",
+                "noActivity": "No updates yet.",
+                "addActivity": "Add update",
+                "activityPlaceholder": "Write an update...",
+                "postActivity": "Post update"
+            },
             "modal": {
                 "createColumn": "Create column",
                 "name": "Name",
@@ -312,6 +327,21 @@
             "assignment": {
                 "unassigned": "Sin asignar",
                 "completed": "Completada"
+            },
+            "card": {
+                "openDetails": "Abrir detalles de la tarjeta",
+                "closeDetails": "Cerrar detalles de la tarjeta",
+                "untitled": "Tarjeta sin título",
+                "column": "Columna",
+                "priority": "Prioridad",
+                "deadline": "Fecha límite",
+                "noDeadline": "Sin fecha límite",
+                "assignee": "Asignado a",
+                "activity": "Actividad",
+                "noActivity": "Aún no hay actualizaciones.",
+                "addActivity": "Añadir actualización",
+                "activityPlaceholder": "Escribe una actualización...",
+                "postActivity": "Publicar actualización"
             },
             "modal": {
                 "createColumn": "Crear columna",

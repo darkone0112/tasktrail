@@ -202,6 +202,20 @@ export async function assignKanbanTask(task, assignedUserId) {
 	);
 }
 
+export async function getKanbanTaskDetails(task) {
+	return apiRequest(
+		`/api/kanban/tasks/${task.userid}/${task.id}`,
+		FETCH_OPTIONS(FETCH_METHODS.GET, CONTENT_TYPES.JSON)
+	);
+}
+
+export async function createKanbanTaskActivity(task, body) {
+	return apiRequest(
+		`/api/kanban/tasks/${task.userid}/${task.id}/activities`,
+		FETCH_OPTIONS(FETCH_METHODS.POST, CONTENT_TYPES.JSON, JSON.stringify({ body }))
+	);
+}
+
 export async function getKanbanTaskOverview() {
 	return apiRequest("/api/tasks/kanban-overview", FETCH_OPTIONS(FETCH_METHODS.GET, CONTENT_TYPES.JSON));
 }

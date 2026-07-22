@@ -7,24 +7,45 @@
                 .kanban-drag-handle
                     span.icon
                         i.fas.fa-grip-lines
-                    strong {{ `#${task.id}` }}
                 .kanban-card-actions
-                    label.checkbox(:title="$t('kanban.assignment.completed')")
-                        input(type="checkbox" v-model="task.done" @change="$emit('complete')")
-                    span.icon.is-clickable
-                        i.fas.fa-xmark(@click="$emit('delete', task)")
+                    input.input.is-small.kanban-deadline-input(
+                        type="date"
+                        :title="$t('tasks.modal.deadline')"
+                        :aria-label="$t('tasks.modal.deadline')"
+                        :value="deadlineValue"
+                        @change="$emit('deadline', $event.target.value)"
+                    )
+                    button.button.is-white.is-small.kanban-detail-button(
+                        type="button"
+                        :title="$t('kanban.card.openDetails')"
+                        :aria-label="$t('kanban.card.openDetails')"
+                        @click="$emit('details')"
+                    )
+                        span.icon
+                            i.fas.fa-up-right-and-down-left-from-center
+                    button.button.is-white.is-small.kanban-delete-button(
+                        type="button"
+                        :title="$t('tasks.overview.delete')"
+                        :aria-label="$t('tasks.overview.delete')"
+                        @click="$emit('delete', task)"
+                    )
+                        span.icon.has-text-danger
+                            i.fas.fa-xmark
 
             label.label(@dblclick="focus")
                 textarea.textarea.kanban-text(
+                    v-if="edit"
                     v-model="task.name"
-                    :disabled="edit ? false : true"
-                    @blur="saveTask()"
-                    @keyup.enter="saveTask()"
+                    @blur="saveTask"
+                    @keyup.enter="saveTask"
                     ref="input"
                     :placeholder="$t('kanban.placeholder')"
                     rows="3"
-                    :class="{ 'strikethrough': task.done }"
                 )
+                p.kanban-card-title(v-else)
+                    template(v-for="(part, index) in titleParts" :key="index")
+                        span.kanban-inline-tag(v-if="part.tag") {{ part.value }}
+                        span(v-else) {{ part.value }}
 
             .kanban-card-footer
                 .kanban-button
@@ -38,14 +59,6 @@
                             .dropdown-content
                                 a(v-for='priority, index in priorities' :key='index' :class="{ 'dropdown-item': true, 'is-active': task.priority === index }" @click='selectOption(index)')
                                     | {{ priority.name }}
-                .kanban-deadline
-                    input.input.is-small(
-                        type="date"
-                        :title="$t('tasks.modal.deadline')"
-                        :aria-label="$t('tasks.modal.deadline')"
-                        :value="deadlineValue"
-                        @change="$emit('deadline', $event.target.value)"
-                    )
                 .kanban-assignee
                     .select.is-small(v-if="canAssign")
                         select(:value="task.assigned_user_id || ''" @change="$emit('assign', $event.target.value)")
@@ -103,6 +116,7 @@ export default {
             selectedOption: "",
         };
     },
+    emits: ['deadline', 'delete', 'details', 'blurTask', 'selectPriority', 'assign'],
     computed: {
         priorityColor() {
             return getTaskPriorityColor(this.task.priority);
@@ -110,6 +124,24 @@ export default {
         deadlineValue() {
             return this.task.due_date ? String(this.task.due_date).slice(0, 10) : "";
         },
+        titleParts() {
+            const parts = [];
+            const matcher = /#[\p{L}\p{N}_-]+/gu;
+            let lastIndex = 0;
+            let match;
+
+            while ((match = matcher.exec(this.task.name)) !== null) {
+                if (match.index > lastIndex) parts.push({ value: this.task.name.slice(lastIndex, match.index), tag: false });
+                parts.push({ value: match[0], tag: true });
+                lastIndex = matcher.lastIndex;
+            }
+
+            if (lastIndex < this.task.name.length || parts.length === 0) {
+                parts.push({ value: this.task.name.slice(lastIndex), tag: false });
+            }
+
+            return parts;
+        }
     },
     created() {
         this.selectedOption = (this.task.priority !== null) ? this.getPriorityName(this.task.priority) : ""; 
