@@ -497,6 +497,41 @@ router.delete("/vacations/:id", async function (req, res, next) {
 	}
 });
 
+router.put("/vacations/:id", async function (req, res, next) {
+	try {
+		const vacation = await prisma.vacationPeriods.findUnique({
+			where: { id: Number(req.params.id) }
+		});
+		if (!vacation) {
+			return res.status(404).json({ error: "Vacation not found" });
+		}
+		if (vacation.user_id !== req.currentUser.id && req.currentUser.role !== "ADMIN") {
+			return res.status(403).json({ error: "You cannot update this vacation" });
+		}
+
+		const startDate = parseDeadline(req.body.startDate);
+		const endDate = parseDeadline(req.body.endDate);
+		if (!startDate || !endDate || endDate < startDate) {
+			return res.status(400).json({ error: "Vacation dates are invalid" });
+		}
+
+		const updatedVacation = await prisma.vacationPeriods.update({
+			where: { id: vacation.id },
+			data: { start_date: startDate, end_date: endDate },
+			include: { User: { select: { id: true, username: true, img: true } } }
+		});
+		return res.json({
+			id: updatedVacation.id,
+			userId: updatedVacation.user_id,
+			startDate: updatedVacation.start_date,
+			endDate: updatedVacation.end_date,
+			user: updatedVacation.User
+		});
+	} catch (error) {
+		return next(error);
+	}
+});
+
 router.post("/tasks/personal", async function (req, res, next) {
 	try {
 		const name = String(req.body.name || "").trim();

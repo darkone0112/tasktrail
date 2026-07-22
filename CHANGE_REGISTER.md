@@ -186,3 +186,19 @@ Files:
 
 Verification: `git diff --check` passed. Runtime, locale parsing, and browser
 checks remain pending because the environment has no Node.js toolchain.
+
+## 2026-07-22T16:34:03+02:00 - Made vacation ranges directly editable
+
+Reason/result: Vacation event marks now open the day action menu, vacation
+creation moved into a modal, and owners can edit dates or resize either range
+edge with server-side validation.
+
+Files:
+- `tasktrail/routes/api.js`
+- `tasktrail/src/locales/locales.json`
+- `tasktrail/src/styles/components/calendar.sass`
+- `tasktrail/src/utils/helpers.js`
+- `tasktrail/src/views/CalendarView.vue`
+
+Verification: `git diff --check` passed. Runtime, locale parsing, and browser
+checks remain pending because the environment has no Node.js toolchain.

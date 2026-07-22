@@ -5,12 +5,9 @@ div
         .calendar-summary
             span.tag.is-primary.is-light
                 | {{ $t('calendar.deadlines', { count: taskEvents.length }) }}
-        form.calendar-vacation-form(@submit.prevent="addVacationRange")
-            input.input.is-small(type="date" v-model="vacationStart" :aria-label="$t('calendar.vacations.start')" required)
-            input.input.is-small(type="date" v-model="vacationEnd" :aria-label="$t('calendar.vacations.end')" required)
-            button.button.is-small.is-primary(type="submit")
-                i.fas.fa-plane-departure(aria-hidden="true")
-                span {{ $t('calendar.vacations.addRange') }}
+        button.button.is-small.is-primary(type="button" @click="showVacationCreator = true")
+            i.fas.fa-plane-departure(aria-hidden="true")
+            span {{ $t('calendar.vacations.create') }}
         button.button.is-small.is-light.calendar-vacation-overview-button(type="button" @click="showVacationOverview = true")
             i.fas.fa-users(aria-hidden="true")
             span {{ $t('calendar.vacations.team') }}
@@ -31,6 +28,23 @@ div
             type="button"
             @click="removeVacation(vacation)"
         ) {{ $t('calendar.vacations.removeRange') }}
+        button.button.is-small.is-light(
+            v-for="vacation in vacationsOnSelectedDay"
+            :key="`edit-${vacation.id}`"
+            type="button"
+            @click="openVacationEditor(vacation)"
+        ) {{ $t('calendar.vacations.editRange') }}
+
+    .modal.is-active.calendar-vacation-modal(v-if="showVacationCreator" @keyup.esc="showVacationCreator = false")
+        .modal-background(@click="showVacationCreator = false")
+        .modal-card.calendar-vacation-modal-card
+            header.modal-card-head
+                p.modal-card-title {{ $t('calendar.vacations.createTitle') }}
+                button.delete(type="button" :aria-label="$t('kanban.card.closeDetails')" @click="showVacationCreator = false")
+            form.calendar-vacation-form.modal-card-body(@submit.prevent="addVacationRange")
+                input.input(type="date" v-model="vacationStart" :aria-label="$t('calendar.vacations.start')" required)
+                input.input(type="date" v-model="vacationEnd" :aria-label="$t('calendar.vacations.end')" required)
+                button.button.is-primary(type="submit") {{ $t('calendar.vacations.addRange') }}
 
     .modal.is-active.calendar-vacation-modal(v-if="showVacationOverview" @keyup.esc="showVacationOverview = false")
         .modal-background(@click="showVacationOverview = false")
@@ -58,11 +72,22 @@ div
                         button.button.is-small.is-danger.is-light(type="button" :aria-label="$t('calendar.vacations.removeRange')" @click="removeVacation(vacation)")
                             i.fas.fa-trash-can(aria-hidden="true")
 
+    .modal.is-active.calendar-vacation-modal(v-if="editingVacation" @keyup.esc="closeVacationEditor")
+        .modal-background(@click="closeVacationEditor")
+        .modal-card.calendar-vacation-modal-card
+            header.modal-card-head
+                p.modal-card-title {{ $t('calendar.vacations.editTitle') }}
+                button.delete(type="button" :aria-label="$t('kanban.card.closeDetails')" @click="closeVacationEditor")
+            form.calendar-vacation-form.modal-card-body(@submit.prevent="saveVacationEdit")
+                input.input(type="date" v-model="editVacationStart" :aria-label="$t('calendar.vacations.start')" required)
+                input.input(type="date" v-model="editVacationEnd" :aria-label="$t('calendar.vacations.end')" required)
+                button.button.is-primary(type="submit") {{ $t('calendar.vacations.save') }}
+
 </template>
 
 <script>
 import alertify from 'alertifyjs'
-import { getKanbanTaskOverview, getTaskPriorityColor, updateKanbanTaskDueDate, getVacationPeriods, createVacationPeriod, deleteVacationPeriod, getUser, alertifysettings, applyTheme } from '../utils/helpers'
+import { getKanbanTaskOverview, getTaskPriorityColor, updateKanbanTaskDueDate, getVacationPeriods, createVacationPeriod, deleteVacationPeriod, updateVacationPeriod, getUser, alertifysettings, applyTheme } from '../utils/helpers'
 
 import FullCalendar from '@fullcalendar/vue3'
 import dayGridPlugin from '@fullcalendar/daygrid'
@@ -85,6 +110,10 @@ export default {
             dayMenu: null,
             showVacationOverview: false,
             showMyVacationOverview: false,
+            showVacationCreator: false,
+            editingVacation: null,
+            editVacationStart: '',
+            editVacationEnd: '',
             currentUserId: null,
             calendarOptions: {
                 events: [],
@@ -98,6 +127,9 @@ export default {
                 buttonText: { prev: '‹', next: '›' },
                 editable: true,
                 eventDrop: async (info) => { await this.save(info) },
+                eventResize: async (info) => { await this.resizeVacation(info) },
+                eventClick: (info) => this.openEventMenu(info),
+                eventResizableFromStart: true,
                 dateClick: (info) => this.openDayMenu(info),
                 eventLongPressDelay: 100,
                 showNonCurrentDates: false
@@ -144,6 +176,11 @@ export default {
             date.setDate(date.getDate() + 1)
             return this.localDateValue(date)
         },
+        previousDateValue(value) {
+            const date = new Date(`${this.localDateValue(value)}T12:00:00`)
+            date.setDate(date.getDate() - 1)
+            return this.localDateValue(date)
+        },
         formatDate(value) {
             return new Intl.DateTimeFormat(this.calendarOptions.locale, { dateStyle: 'medium' }).format(new Date(value))
         },
@@ -157,6 +194,11 @@ export default {
         },
         openDayMenu(info) {
             this.dayMenu = { date: info.dateStr, x: Math.min(info.jsEvent.clientX, window.innerWidth - 220), y: Math.min(info.jsEvent.clientY, window.innerHeight - 160) }
+        },
+        openEventMenu(info) {
+            if (info.event.extendedProps.type !== 'vacation') return
+            const day = info.jsEvent.target.closest('[data-date]')?.dataset.date || this.localDateValue(info.event.start)
+            this.openDayMenu({ dateStr: day, jsEvent: info.jsEvent })
         },
         async createVacation(startDate, endDate) {
             try {
@@ -181,6 +223,7 @@ export default {
             await this.createVacation(this.vacationStart, this.vacationEnd)
             this.vacationStart = ''
             this.vacationEnd = ''
+            this.showVacationCreator = false
         },
         async addSingleVacation() {
             await this.createVacation(this.dayMenu.date, this.dayMenu.date)
@@ -196,6 +239,43 @@ export default {
                 return
             }
             await this.createVacation(this.pendingVacationStart, this.dayMenu.date)
+        },
+        openVacationEditor(vacation) {
+            this.editingVacation = vacation
+            this.editVacationStart = this.localDateValue(vacation.startDate)
+            this.editVacationEnd = this.localDateValue(vacation.endDate)
+            this.dayMenu = null
+        },
+        closeVacationEditor() {
+            this.editingVacation = null
+            this.editVacationStart = ''
+            this.editVacationEnd = ''
+        },
+        async saveVacationEdit() {
+            try {
+                await updateVacationPeriod(this.editingVacation.id, this.editVacationStart, this.editVacationEnd)
+                this.closeVacationEditor()
+                await this.refreshCalendar()
+            } catch (error) {
+                alertify.error(error.message)
+            }
+        },
+        async resizeVacation(info) {
+            if (info.event.extendedProps.type !== 'vacation' || !info.event.extendedProps.canEdit) {
+                info.revert()
+                return
+            }
+            try {
+                await updateVacationPeriod(
+                    info.event.extendedProps.vacationId,
+                    this.localDateValue(info.event.start),
+                    this.previousDateValue(info.event.end)
+                )
+                await this.refreshCalendar()
+            } catch (error) {
+                info.revert()
+                alertify.error(error.message)
+            }
         },
         async refreshCalendar() {
             const [taskEvents, vacations] = await Promise.all([this.populateTasks(), getVacationPeriods()])
@@ -216,21 +296,27 @@ export default {
                     allDay: true,
                     backgroundColor: task.done ? '#7a7a7a' : getTaskPriorityColor(task.priority),
                     borderColor: task.done ? '#7a7a7a' : getTaskPriorityColor(task.priority),
+                    durationEditable: false,
                     classNames: task.done ? ['calendar-task-done'] : [],
                     extendedProps: { type: 'task', task }
                 }))
         },
         populateVacationEvents(vacations) {
-            return vacations.map(vacation => ({
-                id: `vacation-${vacation.id}`,
-                title: this.$t('calendar.vacations.event', { name: vacation.user.username }),
-                start: this.localDateValue(vacation.startDate),
-                end: this.nextDateValue(this.localDateValue(vacation.endDate)),
-                allDay: true,
-                editable: false,
-                classNames: ['calendar-vacation'],
-                extendedProps: { type: 'vacation' }
-            }))
+            return vacations.map(vacation => {
+                const canEdit = vacation.userId === this.currentUserId
+                return {
+                    id: `vacation-${vacation.id}`,
+                    title: this.$t('calendar.vacations.event', { name: vacation.user.username }),
+                    start: this.localDateValue(vacation.startDate),
+                    end: this.nextDateValue(this.localDateValue(vacation.endDate)),
+                    allDay: true,
+                    editable: canEdit,
+                    startEditable: false,
+                    durationEditable: canEdit,
+                    classNames: ['calendar-vacation'],
+                    extendedProps: { type: 'vacation', vacationId: vacation.id, canEdit }
+                }
+            })
         },
         populatePendingVacationStart() {
             if (!this.pendingVacationStart) return []

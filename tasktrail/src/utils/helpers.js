@@ -267,6 +267,13 @@ export async function deleteVacationPeriod(vacationId) {
 	return apiRequest(`/api/vacations/${vacationId}`, FETCH_OPTIONS(FETCH_METHODS.DELETE, CONTENT_TYPES.JSON));
 }
 
+export async function updateVacationPeriod(vacationId, startDate, endDate) {
+	return apiRequest(
+		`/api/vacations/${vacationId}`,
+		FETCH_OPTIONS(FETCH_METHODS.PUT, CONTENT_TYPES.JSON, JSON.stringify({ startDate, endDate }))
+	);
+}
+
 export async function saveLocale(locale) {
 	return apiRequest(
 		"/api/settings/locale",

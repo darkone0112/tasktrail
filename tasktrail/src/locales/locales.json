@@ -169,6 +169,8 @@
                 "start": "Vacation start",
                 "end": "Vacation end",
                 "addRange": "Add vacation",
+                "create": "Add vacation",
+                "createTitle": "Add vacation range",
                 "team": "Team vacations",
                 "teamTitle": "Team vacations",
                 "manage": "Manage my vacations",
@@ -180,6 +182,9 @@
                 "startFirst": "Choose a vacation start day first.",
                 "pendingStart": "Vacation starts here",
                 "removeRange": "Remove vacation",
+                "editRange": "Edit vacation",
+                "editTitle": "Edit vacation range",
+                "save": "Save vacation",
                 "event": "{name} vacation"
             }
         },
@@ -420,6 +425,8 @@
                 "start": "Inicio de vacaciones",
                 "end": "Fin de vacaciones",
                 "addRange": "Añadir vacaciones",
+                "create": "Añadir vacaciones",
+                "createTitle": "Añadir periodo de vacaciones",
                 "team": "Vacaciones del equipo",
                 "teamTitle": "Vacaciones del equipo",
                 "manage": "Gestionar mis vacaciones",
@@ -431,6 +438,9 @@
                 "startFirst": "Elige primero el día de inicio de vacaciones.",
                 "pendingStart": "Las vacaciones empiezan aquí",
                 "removeRange": "Eliminar vacaciones",
+                "editRange": "Editar vacaciones",
+                "editTitle": "Editar periodo de vacaciones",
+                "save": "Guardar vacaciones",
                 "event": "Vacaciones de {name}"
             }
         },
