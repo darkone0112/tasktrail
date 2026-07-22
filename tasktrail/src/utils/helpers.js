@@ -191,6 +191,17 @@ export async function deleteKanbanTask(boardId, task) {
 	);
 }
 
+export async function getDeletedKanbanTasks(boardId) {
+	return apiRequest(`/api/kanban/boards/${boardId}/recycle-bin`, FETCH_OPTIONS(FETCH_METHODS.GET, CONTENT_TYPES.JSON));
+}
+
+export async function restoreKanbanTask(task) {
+	return apiRequest(
+		`/api/kanban/tasks/${task.userid}/${task.id}/restore`,
+		FETCH_OPTIONS(FETCH_METHODS.POST, CONTENT_TYPES.JSON)
+	);
+}
+
 export async function assignKanbanTask(task, assignedUserId) {
 	return apiRequest(
 		`/api/kanban/tasks/${task.userid}/${task.id}/assignee`,

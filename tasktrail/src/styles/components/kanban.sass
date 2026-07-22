@@ -190,6 +190,21 @@
     padding-right: .25rem
     font-size: .75rem
 
+.kanban-card-icon
+    display: grid
+    width: 2rem
+    min-width: 2rem
+    height: 2rem
+    place-items: center
+    border: 0
+    border-radius: 4px
+    background: transparent
+    color: inherit
+
+    &:hover,
+    &:focus-visible
+        background: $clr-white
+
 .kanban-card-footer
     display: flex
     flex-wrap: wrap
@@ -211,11 +226,8 @@
     gap: .4rem
     margin-left: auto
 
-.kanban-detail-button,
 .kanban-delete-button
-    width: 2rem
-    min-width: 2rem
-    padding: 0 !important
+    color: $danger
 
 .kanban-task-details-modal
     width: min(44rem, calc(100vw - 2rem))
@@ -319,6 +331,38 @@
     display: flex
     justify-content: flex-end
     margin-top: .75rem
+
+.kanban-recycle-button
+    margin-left: .5rem
+
+.kanban-recycle-bin-modal
+    width: min(38rem, calc(100vw - 2rem))
+
+.kanban-recycle-list
+    display: grid
+    gap: .75rem
+
+.kanban-recycle-entry
+    display: flex
+    align-items: center
+    justify-content: space-between
+    gap: 1rem
+    padding: .85rem
+    border: 1px solid $clr-white
+    border-radius: 4px
+
+.kanban-recycle-entry-main
+    display: flex
+    flex: 1
+    flex-wrap: wrap
+    align-items: center
+    gap: .5rem
+    min-width: 0
+    overflow-wrap: anywhere
+
+    small
+        flex-basis: 100%
+        color: $clr-gray-dark
 
 .dropdown-trigger button
     width: fit-content !important

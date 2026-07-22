@@ -15,7 +15,7 @@
                         :value="deadlineValue"
                         @change="$emit('deadline', $event.target.value)"
                     )
-                    button.button.is-white.is-small.kanban-detail-button(
+                    button.kanban-card-icon.kanban-detail-button(
                         type="button"
                         :title="$t('kanban.card.openDetails')"
                         :aria-label="$t('kanban.card.openDetails')"
@@ -23,7 +23,7 @@
                     )
                         span.icon
                             i.fas.fa-up-right-and-down-left-from-center
-                    button.button.is-white.is-small.kanban-delete-button(
+                    button.kanban-card-icon.kanban-delete-button(
                         type="button"
                         :title="$t('tasks.overview.delete')"
                         :aria-label="$t('tasks.overview.delete')"

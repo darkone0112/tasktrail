@@ -111,3 +111,25 @@ Files:
 - `CHANGE_REGISTER.md`
 
 Verification: Confirmed this record is the final entry in the register.
+
+## 2026-07-22T15:17:20+02:00 - Added themed card activity logging and recycle bin
+
+Reason/result: Added automatic timeline entries for card changes and column
+moves, made the new Kanban controls inherit dark and high-contrast themes, and
+replaced permanent card deletion with a 15-day restore bin.
+
+Files:
+- `tasktrail/prisma/schema.prisma`
+- `tasktrail/prisma/migrations/20260722160000_add_kanban_task_recycle_bin/migration.sql`
+- `tasktrail/routes/api.js`
+- `tasktrail/src/components/KanbanTask.vue`
+- `tasktrail/src/components/modals/KanbanRecycleBin.vue`
+- `tasktrail/src/locales/locales.json`
+- `tasktrail/src/styles/components/kanban.sass`
+- `tasktrail/src/styles/components/settings.sass`
+- `tasktrail/src/utils/helpers.js`
+- `tasktrail/src/views/KanbanView.vue`
+
+Verification: Locale JSON and `git diff --check` passed. Runtime, Prisma, and
+browser checks remain pending because Node.js is not installed on the current
+environment PATH.

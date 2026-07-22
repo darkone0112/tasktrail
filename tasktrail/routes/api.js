@@ -26,6 +26,32 @@ function parseDeadline(value) {
 	return Number.isNaN(date.getTime()) ? null : date;
 }
 
+const RECYCLE_BIN_DAYS = 15;
+
+function formatDeadline(value) {
+	return value ? new Date(value).toISOString().slice(0, 10) : null;
+}
+
+async function recordKanbanActivity(client, task, userId, body) {
+	return client.kanbanTaskActivities.create({
+		data: {
+			task_id: task.id,
+			task_userid: task.userid,
+			user_id: userId,
+			body
+		}
+	});
+}
+
+async function purgeExpiredKanbanTasks() {
+	const expiresAt = new Date(Date.now() - RECYCLE_BIN_DAYS * 24 * 60 * 60 * 1000);
+	return prisma.kanbanTasks.deleteMany({
+		where: {
+			deleted_at: { lt: expiresAt }
+		}
+	});
+}
+
 async function createKanbanTask(data) {
 	for (let attempt = 0; attempt < 3; attempt++) {
 		const maxTask = await prisma.kanbanTasks.findFirst({
@@ -319,6 +345,7 @@ router.get("/tasks/kanban-overview", async function (req, res, next) {
 		const [personalTasks, assignedTasks] = await Promise.all([
 			prisma.kanbanTasks.findMany({
 				where: {
+					deleted_at: null,
 					KanbanColumns: {
 						is: {
 							Board: {
@@ -335,6 +362,7 @@ router.get("/tasks/kanban-overview", async function (req, res, next) {
 			}),
 			prisma.kanbanTasks.findMany({
 				where: {
+					deleted_at: null,
 					assigned_user_id: req.currentUser.id,
 					KanbanColumns: {
 						is: {
@@ -392,6 +420,7 @@ router.post("/tasks/personal", async function (req, res, next) {
 			kanbanColumnsId: inbox.id,
 			userid: req.currentUser.id
 		});
+		await recordKanbanActivity(prisma, task, req.currentUser.id, `Card created in ${inbox.title}.`);
 
 		return res.status(201).json(task);
 	} catch (error) {
@@ -414,7 +443,7 @@ router.put("/tasks/kanban/:userid/:id", async function (req, res, next) {
 				}
 			}
 		});
-		if (!task?.KanbanColumns?.Board) {
+		if (!task?.KanbanColumns?.Board || task.deleted_at) {
 			return res.status(404).json({ error: "Task not found" });
 		}
 
@@ -444,6 +473,12 @@ router.put("/tasks/kanban/:userid/:id", async function (req, res, next) {
 			},
 			data
 		});
+		if (Object.prototype.hasOwnProperty.call(data, "done") && task.done !== data.done) {
+			await recordKanbanActivity(prisma, task, req.currentUser.id, "Card completion status updated.");
+		}
+		if (Object.prototype.hasOwnProperty.call(data, "due_date") && formatDeadline(task.due_date) !== formatDeadline(data.due_date)) {
+			await recordKanbanActivity(prisma, task, req.currentUser.id, "Card deadline updated.");
+		}
 		return res.json(updatedTask);
 	} catch (error) {
 		return next(error);
@@ -772,8 +807,24 @@ router.post("/save/kanban", async function (req, res, next) {
 						},
 						include: { KanbanColumns: true }
 					});
-					if (!existingTask || existingTask.KanbanColumns?.board_id !== board.id) {
+					if (!existingTask || existingTask.deleted_at || existingTask.KanbanColumns?.board_id !== board.id) {
 						throw new Error("Task does not belong to this board");
+					}
+
+					const nextName = String(task.name || "");
+					const nextPriority = Number(task.priority) || 0;
+					const nextDone = Boolean(task.done);
+					const nextDeadline = parseDeadline(task.due_date);
+					const activities = [];
+
+					if (existingTask.name !== nextName) activities.push("Card title updated.");
+					if (existingTask.priority !== nextPriority) activities.push("Card priority updated.");
+					if (formatDeadline(existingTask.due_date) !== formatDeadline(nextDeadline)) {
+						activities.push("Card deadline updated.");
+					}
+					if (existingTask.done !== nextDone) activities.push("Card completion status updated.");
+					if (existingTask.kanbanColumnsId !== columnData.id) {
+						activities.push(`Card moved from ${existingTask.KanbanColumns.title} to ${columnData.title}.`);
 					}
 
 					await tx.kanbanTasks.update({
@@ -785,13 +836,17 @@ router.post("/save/kanban", async function (req, res, next) {
 						},
 						data: {
 							order: taskIndex,
-							name: String(task.name || ""),
-							priority: Number(task.priority) || 0,
-							done: Boolean(task.done),
-							due_date: parseDeadline(task.due_date),
+							name: nextName,
+							priority: nextPriority,
+							done: nextDone,
+							due_date: nextDeadline,
 							kanbanColumnsId: columnData.id
 						}
 					});
+
+					for (const body of activities) {
+						await recordKanbanActivity(tx, existingTask, req.currentUser.id, body);
+					}
 				}
 			}
 		});
@@ -804,6 +859,7 @@ router.post("/save/kanban", async function (req, res, next) {
 
 router.get("/get/kanban", async function (req, res, next) {
 	try {
+		await purgeExpiredKanbanTasks();
 		const board = await getAccessibleBoard(req.currentUser, req.query.boardId, false);
 		if (!board) return res.status(404).json({ error: "Board not found" });
 
@@ -812,6 +868,7 @@ router.get("/get/kanban", async function (req, res, next) {
 			orderBy: { order: "asc" },
 			include: {
 				KanbanTasks: {
+					where: { deleted_at: null },
 					orderBy: { order: "asc" },
 					include: {
 						Assignee: {
@@ -856,13 +913,14 @@ router.post("/insert/kanban-task", async function (req, res, next) {
 		});
 		if (!targetColumn) return res.status(404).json({ error: "Column not found" });
 
-		await createKanbanTask({
+		const createdTask = await createKanbanTask({
 			order: 0,
 			name: String(task.name || ""),
 			priority: Number(task.priority) || 0,
 			kanbanColumnsId: targetColumn.id,
 			userid: req.currentUser.id
 		});
+		await recordKanbanActivity(prisma, createdTask, req.currentUser.id, `Card created in ${targetColumn.title}.`);
 
 		return res.status(201).json({ query: false });
 	} catch (error) {
@@ -904,18 +962,77 @@ router.post("/delete/kanban-task", async function (req, res, next) {
 			},
 			include: { KanbanColumns: true }
 		});
-		if (!existingTask || existingTask.KanbanColumns?.board_id !== board.id) {
+		if (!existingTask || existingTask.deleted_at || existingTask.KanbanColumns?.board_id !== board.id) {
 			return res.status(404).json({ error: "Task not found" });
 		}
 
-		await prisma.kanbanTasks.delete({
+		await prisma.kanbanTasks.update({
 			where: {
 				id_userid: {
 					id: existingTask.id,
 					userid: existingTask.userid
 				}
+			},
+			data: { deleted_at: new Date() }
+		});
+		await recordKanbanActivity(prisma, existingTask, req.currentUser.id, "Card moved to the recycle bin.");
+		return res.json({ query: false });
+	} catch (error) {
+		return next(error);
+	}
+});
+
+router.get("/kanban/boards/:id/recycle-bin", async function (req, res, next) {
+	try {
+		await purgeExpiredKanbanTasks();
+		const board = await getAccessibleBoard(req.currentUser, req.params.id, false);
+		if (!board) return res.status(404).json({ error: "Board not found" });
+
+		const tasks = await prisma.kanbanTasks.findMany({
+			where: {
+				deleted_at: { not: null },
+				KanbanColumns: { is: { board_id: board.id } }
+			},
+			orderBy: { deleted_at: "desc" },
+			include: {
+				KanbanColumns: { select: { title: true } },
+				Assignee: { select: { username: true } }
 			}
 		});
+
+		return res.json(tasks.map(task => ({
+			...task,
+			column: task.KanbanColumns,
+			assignee: task.Assignee,
+			KanbanColumns: undefined,
+			Assignee: undefined
+		})));
+	} catch (error) {
+		return next(error);
+	}
+});
+
+router.post("/kanban/tasks/:userid/:id/restore", async function (req, res, next) {
+	try {
+		await purgeExpiredKanbanTasks();
+		const task = await getKanbanTaskWithBoard(req.params.id, req.params.userid);
+		if (!task?.deleted_at || !task.KanbanColumns?.board_id) {
+			return res.status(404).json({ error: "Deleted task not found" });
+		}
+
+		const board = await getAccessibleBoard(req.currentUser, task.KanbanColumns.board_id, true);
+		if (!board) return res.status(404).json({ error: "Board not found" });
+
+		await prisma.kanbanTasks.update({
+			where: {
+				id_userid: {
+					id: task.id,
+					userid: task.userid
+				}
+			},
+			data: { deleted_at: null }
+		});
+		await recordKanbanActivity(prisma, task, req.currentUser.id, "Card restored from the recycle bin.");
 		return res.json({ query: false });
 	} catch (error) {
 		return next(error);
@@ -937,7 +1054,7 @@ router.put("/kanban/tasks/:userid/:id/assignee", requireAdmin, async function (r
 			},
 			include: { KanbanColumns: true }
 		});
-		if (!task?.KanbanColumns?.board_id) {
+		if (!task?.KanbanColumns?.board_id || task.deleted_at) {
 			return res.status(404).json({ error: "Task not found" });
 		}
 
@@ -974,6 +1091,9 @@ router.put("/kanban/tasks/:userid/:id/assignee", requireAdmin, async function (r
 				}
 			}
 		});
+		if (task.assigned_user_id !== updatedTask.assigned_user_id) {
+			await recordKanbanActivity(prisma, task, req.currentUser.id, "Card assignee updated.");
+		}
 
 		return res.json({
 			assignedUserId: updatedTask.assigned_user_id,
@@ -987,7 +1107,7 @@ router.put("/kanban/tasks/:userid/:id/assignee", requireAdmin, async function (r
 router.get("/kanban/tasks/:userid/:id", async function (req, res, next) {
 	try {
 		const task = await getKanbanTaskWithBoard(req.params.id, req.params.userid);
-		if (!task?.KanbanColumns?.board_id) {
+		if (!task?.KanbanColumns?.board_id || task.deleted_at) {
 			return res.status(404).json({ error: "Task not found" });
 		}
 
@@ -1045,7 +1165,7 @@ router.post("/kanban/tasks/:userid/:id/activities", async function (req, res, ne
 		}
 
 		const task = await getKanbanTaskWithBoard(req.params.id, req.params.userid);
-		if (!task?.KanbanColumns?.board_id) {
+		if (!task?.KanbanColumns?.board_id || task.deleted_at) {
 			return res.status(404).json({ error: "Task not found" });
 		}
 

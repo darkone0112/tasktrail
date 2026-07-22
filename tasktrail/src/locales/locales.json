@@ -118,6 +118,14 @@
                 "activityPlaceholder": "Write an update...",
                 "postActivity": "Post update"
             },
+            "recycleBin": {
+                "button": "Recycle bin",
+                "title": "Deleted cards",
+                "close": "Close deleted cards",
+                "empty": "There are no deleted cards.",
+                "restore": "Restore",
+                "expires": "Permanently deleted on {date}"
+            },
             "modal": {
                 "createColumn": "Create column",
                 "name": "Name",
@@ -342,6 +350,14 @@
                 "addActivity": "Añadir actualización",
                 "activityPlaceholder": "Escribe una actualización...",
                 "postActivity": "Publicar actualización"
+            },
+            "recycleBin": {
+                "button": "Papelera",
+                "title": "Tarjetas eliminadas",
+                "close": "Cerrar tarjetas eliminadas",
+                "empty": "No hay tarjetas eliminadas.",
+                "restore": "Restaurar",
+                "expires": "Se eliminará definitivamente el {date}"
             },
             "modal": {
                 "createColumn": "Crear columna",

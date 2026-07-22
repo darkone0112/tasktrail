@@ -26,8 +26,12 @@
         ) {{ $t('kanban.boards.delete') }}
 
     .buttons.columns(v-if="selectedBoard")
-        .column
+        .column.is-flex.is-align-items-center.is-flex-wrap-wrap
             KanbanModal(@add="addColumn")
+            button.button.is-light.kanban-recycle-button(type="button" @click="openRecycleBin")
+                span.icon
+                    i.fas.fa-trash-arrow-up
+                span {{ $t('kanban.recycleBin.button') }}
 
     .kanban-wrapper
         .kanban-loading(v-if="loading" role="status" :aria-label="$t('kanban.loading')")
@@ -89,6 +93,14 @@
         @add-activity="addTaskActivity"
     )
 
+    KanbanRecycleBin(
+        v-if="recycleBinOpen"
+        :tasks="deletedTasks"
+        :loading="recycleBinLoading"
+        @close="closeRecycleBin"
+        @restore="restoreDeletedTask"
+    )
+
 </template>
 
 <script>
@@ -103,11 +115,13 @@ import {
     deleteKanbanBoard,
     deleteKanbanColumn,
     deleteKanbanTask,
+    getDeletedKanbanTasks,
     getKanban,
     getKanbanBoards,
     getUsers,
     getKanbanTaskDetails,
     createKanbanTaskActivity,
+    restoreKanbanTask,
     saveBoardKanban
 } from '../utils/helpers'
 import { user } from '../router'
@@ -116,6 +130,7 @@ import KanbanTask from '../components/KanbanTask.vue'
 import KanbanModal from '../components/modals/KanbanModal.vue'
 import KanbanColumnButtons from '../components/KanbanColumnButtons.vue'
 import KanbanTaskDetails from '../components/modals/KanbanTaskDetails.vue'
+import KanbanRecycleBin from '../components/modals/KanbanRecycleBin.vue'
 
 export default {
     name: 'Kanban',
@@ -124,6 +139,7 @@ export default {
         KanbanColumnButtons,
         KanbanModal,
         KanbanTaskDetails,
+        KanbanRecycleBin,
         draggable
     },
     data() {
@@ -141,7 +157,10 @@ export default {
             activeTask: null,
             taskDetails: null,
             taskDetailsLoading: false,
-            taskActivitySaving: false
+            taskActivitySaving: false,
+            recycleBinOpen: false,
+            recycleBinLoading: false,
+            deletedTasks: []
         }
     },
     computed: {
@@ -230,6 +249,32 @@ export default {
             await deleteKanbanTask(this.selectedBoard.id, task);
             if (this.activeTask === task) this.closeTaskDetails()
             await this.getKanban()
+        },
+        async openRecycleBin() {
+            this.recycleBinOpen = true
+            this.recycleBinLoading = true
+            try {
+                this.deletedTasks = await getDeletedKanbanTasks(this.selectedBoard.id)
+            } catch (error) {
+                alertify.error(error.message)
+                this.closeRecycleBin()
+            } finally {
+                this.recycleBinLoading = false
+            }
+        },
+        closeRecycleBin() {
+            this.recycleBinOpen = false
+            this.recycleBinLoading = false
+            this.deletedTasks = []
+        },
+        async restoreDeletedTask(task) {
+            try {
+                await restoreKanbanTask(task)
+                this.deletedTasks = this.deletedTasks.filter(deletedTask => this.taskKey(deletedTask) !== this.taskKey(task))
+                await this.getKanban()
+            } catch (error) {
+                alertify.error(error.message)
+            }
         },
         async openTaskDetails(task) {
             this.activeTask = task
