@@ -65,3 +65,16 @@ Files:
 
 Verification: `git diff --check` passed. Firefox and build verification remain
 pending because Node.js is not installed on the current environment PATH.
+
+## 2026-07-22T14:29:05+02:00 - Corrected main content sizing beside sidebar
+
+Reason/result: The app content no longer uses the full viewport as its flex
+base size. It now occupies only the remaining space after the expanded sidebar,
+so Kanban centering and overflow are calculated against the visible content
+area consistently across Firefox and Chromium.
+
+Files:
+- `tasktrail/src/styles/components/app.sass`
+
+Verification: `git diff --check` passed. Browser/build verification remains
+pending because Node.js is not installed on the current environment PATH.
