@@ -53,3 +53,15 @@ Files:
 
 Verification: `git diff --check` passed. Browser/build verification remains
 pending because Node.js is not installed on the current environment PATH.
+
+## 2026-07-22T14:17:11+02:00 - Made Kanban alignment Firefox-compatible
+
+Reason/result: Replaced flex safe-centering with intrinsic board sizing and
+auto margins so fitting columns are centered consistently across browsers,
+while overflowing boards begin at the wrapper's left edge for scrolling.
+
+Files:
+- `tasktrail/src/styles/components/kanban.sass`
+
+Verification: `git diff --check` passed. Firefox and build verification remain
+pending because Node.js is not installed on the current environment PATH.

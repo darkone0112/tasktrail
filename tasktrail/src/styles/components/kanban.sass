@@ -27,18 +27,18 @@
 .kanban-board
     display: flex
     align-items: stretch
-    justify-content: safe center
+    justify-content: flex-start
     gap: 1em
     width: max-content
     height: 100%
-    min-width: 100%
+    margin-inline: auto
     padding: 0 .25rem .5rem 0
     scrollbar-width: thin
     scrollbar-color: $primary $clr-white
 
     @include sm-breakpoint
         width: 100%
-        min-width: 100%
+        margin-inline: 0
         flex-direction: column
         height: auto
 
