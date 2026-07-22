@@ -252,6 +252,17 @@ export async function updateKanbanTaskDueDate(task, dueDate) {
 	);
 }
 
+export async function getVacationPeriods() {
+	return apiRequest("/api/vacations", FETCH_OPTIONS(FETCH_METHODS.GET, CONTENT_TYPES.JSON));
+}
+
+export async function createVacationPeriod(startDate, endDate) {
+	return apiRequest(
+		"/api/vacations",
+		FETCH_OPTIONS(FETCH_METHODS.POST, CONTENT_TYPES.JSON, JSON.stringify({ startDate, endDate }))
+	);
+}
+
 export async function saveLocale(locale) {
 	return apiRequest(
 		"/api/settings/locale",

@@ -151,3 +151,22 @@ Files:
 Verification: Locale JSON and `git diff --check` passed. Runtime and browser
 checks remain pending because Node.js is not installed on the current
 environment PATH.
+
+## 2026-07-22T15:58:31+02:00 - Fixed calendar deadlines and added team vacations
+
+Reason/result: Calendar drag-and-drop now saves the selected local date without
+a timezone day shift. Added team-visible vacation ranges, day-click vacation
+actions, and a complete vacation overview; themed the Kanban priority menu.
+
+Files:
+- `tasktrail/prisma/schema.prisma`
+- `tasktrail/prisma/migrations/20260722170000_add_vacation_periods/migration.sql`
+- `tasktrail/routes/api.js`
+- `tasktrail/src/locales/locales.json`
+- `tasktrail/src/styles/components/calendar.sass`
+- `tasktrail/src/styles/components/kanban.sass`
+- `tasktrail/src/utils/helpers.js`
+- `tasktrail/src/views/CalendarView.vue`
+
+Verification: `git diff --check` passed. Runtime, Prisma, locale parsing, and
+browser checks remain pending because the environment has no Node.js toolchain.

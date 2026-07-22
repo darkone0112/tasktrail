@@ -164,7 +164,20 @@
             "title": "📆 Calendar",
             "desc": "Your organization taken to another level.",
             "group": "General",
-            "deadlines": "{count} scheduled deadlines"
+            "deadlines": "{count} scheduled deadlines",
+            "vacations": {
+                "start": "Vacation start",
+                "end": "Vacation end",
+                "addRange": "Add vacation",
+                "team": "Team vacations",
+                "teamTitle": "Team vacations",
+                "none": "No vacation periods have been added.",
+                "addSingle": "Add single vacation day",
+                "addStart": "Add vacation start",
+                "addEnd": "Add vacation end",
+                "startFirst": "Choose a vacation start day first.",
+                "event": "{name} vacation"
+            }
         },
         "settings": {
             "menuTitle": "Settings",
@@ -398,7 +411,20 @@
             "title": "📆 Calendario",
             "desc": "Tu organización llevada a otro nivel.",
             "group": "General",
-            "deadlines": "{count} fechas límite programadas"
+            "deadlines": "{count} fechas límite programadas",
+            "vacations": {
+                "start": "Inicio de vacaciones",
+                "end": "Fin de vacaciones",
+                "addRange": "Añadir vacaciones",
+                "team": "Vacaciones del equipo",
+                "teamTitle": "Vacaciones del equipo",
+                "none": "No se han añadido periodos de vacaciones.",
+                "addSingle": "Añadir día de vacaciones",
+                "addStart": "Añadir inicio de vacaciones",
+                "addEnd": "Añadir fin de vacaciones",
+                "startFirst": "Elige primero el día de inicio de vacaciones.",
+                "event": "Vacaciones de {name}"
+            }
         },
         "settings": {
             "menuTitle": "Ajustes",

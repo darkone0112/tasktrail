@@ -72,6 +72,84 @@
     justify-content: flex-end
     margin-bottom: .75rem
 
+.calendar-toolbar
+    display: flex
+    flex-wrap: wrap
+    align-items: center
+    justify-content: flex-end
+    gap: .75rem
+    margin-bottom: .75rem
+
+    .calendar-summary
+        margin-bottom: 0
+
+.calendar-vacation-form
+    display: flex
+    flex-wrap: wrap
+    align-items: center
+    gap: .5rem
+
+    .input
+        width: 9rem
+        color: var(--kanban-text)
+        border-color: var(--kanban-border)
+        background: var(--kanban-input-surface)
+        color-scheme: var(--kanban-color-scheme)
+
+    .button .fas,
+    .calendar-vacation-overview-button .fas
+        margin-right: .35rem
+
+.calendar-day-menu
+    position: fixed
+    z-index: 40
+    display: grid
+    gap: .45rem
+    width: 13rem
+    margin: 0
+    padding: .75rem
+    color: var(--kanban-text)
+    border: 1px solid var(--kanban-border)
+    background: var(--kanban-surface)
+    box-shadow: 0 4px 14px rgba(0, 0, 0, .2)
+
+    .button
+        justify-content: flex-start
+
+.calendar-day-menu-title
+    margin: 0
+    font-weight: bold
+
+.calendar-vacation-modal-card
+    width: min(34rem, calc(100vw - 2rem))
+    color: var(--kanban-text)
+
+    .modal-card-head,
+    .modal-card-body
+        color: var(--kanban-text)
+        border-color: var(--kanban-border)
+        background: var(--kanban-surface)
+
+.calendar-vacation-list
+    display: grid
+    gap: .5rem
+    margin: 0
+    list-style: none
+
+    li
+        display: flex
+        justify-content: space-between
+        gap: 1rem
+        padding: .65rem 0
+        border-bottom: 1px solid var(--kanban-border)
+
+.calendar-vacation-empty
+    color: var(--kanban-muted-text)
+
+.calendar-vacation
+    background-color: #485fc7 !important
+    border-color: #485fc7 !important
+
 .calendar-task-done
     opacity: .65
     text-decoration: line-through

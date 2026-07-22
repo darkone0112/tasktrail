@@ -423,6 +423,61 @@ router.get("/tasks/kanban-overview", async function (req, res, next) {
 	}
 });
 
+router.get("/vacations", async function (req, res, next) {
+	try {
+		const vacations = await prisma.vacationPeriods.findMany({
+			where: { User: { is: { disabled: false } } },
+			include: {
+				User: {
+					select: { id: true, username: true, img: true }
+				}
+			},
+			orderBy: [{ start_date: "asc" }, { end_date: "asc" }]
+		});
+
+		return res.json(vacations.map(vacation => ({
+			id: vacation.id,
+			userId: vacation.user_id,
+			startDate: vacation.start_date,
+			endDate: vacation.end_date,
+			user: vacation.User
+		})));
+	} catch (error) {
+		return next(error);
+	}
+});
+
+router.post("/vacations", async function (req, res, next) {
+	try {
+		const startDate = parseDeadline(req.body.startDate);
+		const endDate = parseDeadline(req.body.endDate);
+		if (!startDate || !endDate || endDate < startDate) {
+			return res.status(400).json({ error: "Vacation dates are invalid" });
+		}
+
+		const vacation = await prisma.vacationPeriods.create({
+			data: {
+				user_id: req.currentUser.id,
+				start_date: startDate,
+				end_date: endDate
+			},
+			include: {
+				User: { select: { id: true, username: true, img: true } }
+			}
+		});
+
+		return res.status(201).json({
+			id: vacation.id,
+			userId: vacation.user_id,
+			startDate: vacation.start_date,
+			endDate: vacation.end_date,
+			user: vacation.User
+		});
+	} catch (error) {
+		return next(error);
+	}
+});
+
 router.post("/tasks/personal", async function (req, res, next) {
 	try {
 		const name = String(req.body.name || "").trim();

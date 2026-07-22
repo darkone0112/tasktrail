@@ -1,17 +1,46 @@
 <template lang="pug">
 
 div
-    .calendar-summary
-        span.tag.is-primary.is-light
-            | {{ $t('calendar.deadlines', { count: calendarOptions.events.length }) }}
+    .calendar-toolbar
+        .calendar-summary
+            span.tag.is-primary.is-light
+                | {{ $t('calendar.deadlines', { count: taskEvents.length }) }}
+        form.calendar-vacation-form(@submit.prevent="addVacationRange")
+            input.input.is-small(type="date" v-model="vacationStart" :aria-label="$t('calendar.vacations.start')" required)
+            input.input.is-small(type="date" v-model="vacationEnd" :aria-label="$t('calendar.vacations.end')" required)
+            button.button.is-small.is-primary(type="submit")
+                i.fas.fa-plane-departure(aria-hidden="true")
+                span {{ $t('calendar.vacations.addRange') }}
+        button.button.is-small.is-light.calendar-vacation-overview-button(type="button" @click="showVacationOverview = true")
+            i.fas.fa-users(aria-hidden="true")
+            span {{ $t('calendar.vacations.team') }}
     FullCalendar.calendar(:options="calendarOptions")
     FullCalendar.list(:options="listOptions")
+
+    .calendar-day-menu.box(v-if="dayMenu" :style="dayMenuStyle")
+        p.calendar-day-menu-title {{ dayMenu.date }}
+        button.button.is-small.is-light(type="button" @click="addSingleVacation") {{ $t('calendar.vacations.addSingle') }}
+        button.button.is-small.is-light(type="button" @click="setVacationStart") {{ $t('calendar.vacations.addStart') }}
+        button.button.is-small.is-light(type="button" @click="setVacationEnd") {{ $t('calendar.vacations.addEnd') }}
+
+    .modal.is-active.calendar-vacation-modal(v-if="showVacationOverview" @keyup.esc="showVacationOverview = false")
+        .modal-background(@click="showVacationOverview = false")
+        .modal-card.calendar-vacation-modal-card
+            header.modal-card-head
+                p.modal-card-title {{ $t('calendar.vacations.teamTitle') }}
+                button.delete(type="button" :aria-label="$t('kanban.card.closeDetails')" @click="showVacationOverview = false")
+            section.modal-card-body
+                p.calendar-vacation-empty(v-if="!vacations.length") {{ $t('calendar.vacations.none') }}
+                ul.calendar-vacation-list(v-else)
+                    li(v-for="vacation in vacations" :key="vacation.id")
+                        strong {{ vacation.user.username }}
+                        span {{ formatDate(vacation.startDate) }} - {{ formatDate(vacation.endDate) }}
 
 </template>
 
 <script>
 import alertify from 'alertifyjs'
-import { getKanbanTaskOverview, getTaskPriorityColor, updateKanbanTaskDueDate, alertifysettings, applyTheme } from '../utils/helpers'
+import { getKanbanTaskOverview, getTaskPriorityColor, updateKanbanTaskDueDate, getVacationPeriods, createVacationPeriod, alertifysettings, applyTheme } from '../utils/helpers'
 
 import FullCalendar from '@fullcalendar/vue3'
 import dayGridPlugin from '@fullcalendar/daygrid'
@@ -26,97 +55,145 @@ export default {
     },
     data() {
         return {
+            taskEvents: [],
+            vacations: [],
+            vacationStart: '',
+            vacationEnd: '',
+            pendingVacationStart: '',
+            dayMenu: null,
+            showVacationOverview: false,
             calendarOptions: {
                 events: [],
                 locales: allLocales,
                 locale: localStorage.getItem('locale') || 'en',
-                plugins: [
-                    dayGridPlugin,
-                    interactionPlugin,
-                ],
-                headerToolbar: {
-                    left: 'prev',
-                    center: 'title',
-                    right: 'today,next'
-                },
+                plugins: [dayGridPlugin, interactionPlugin],
+                headerToolbar: { left: 'prev', center: 'title', right: 'today,next' },
                 initialView: 'dayGridMonth',
                 dayMaxEvents: 3,
                 buttonIcons: false,
-                buttonText: {
-                    prev: '‹',
-                    next: '›',
-                },
-
-                // Allow drag and drop
+                buttonText: { prev: '‹', next: '›' },
                 editable: true,
-                // eventStartEditable: true,
                 eventDrop: async (info) => { await this.save(info) },
-
-                // For mobile
+                dateClick: (info) => this.openDayMenu(info),
                 eventLongPressDelay: 100,
                 showNonCurrentDates: false
             },
-
             listOptions: {
                 events: [],
                 locales: allLocales,
                 locale: localStorage.getItem('locale') || 'en',
-                plugins: [
-                    listPlugin,
-                    dayGridPlugin,
-                ],
-                headerToolbar: {
-                    left: 'prev',
-                    center: 'title',
-                    right: 'today,next'
-                },
+                plugins: [listPlugin, dayGridPlugin],
+                headerToolbar: { left: 'prev', center: 'title', right: 'today,next' },
                 initialView: 'listWeek',
                 dayMaxEvents: 3,
                 buttonIcons: false,
-                buttonText: {
-                    prev: '‹',
-                    next: '›',
-                },
+                buttonText: { prev: '‹', next: '›' }
             }
         }
     },
+    computed: {
+        dayMenuStyle() {
+            return { left: `${this.dayMenu.x}px`, top: `${this.dayMenu.y}px` }
+        }
+    },
     methods: {
-        async save(info) {
-            await updateKanbanTaskDueDate(info.event.extendedProps.task, info.event.start)
-            this.calendarOptions.events = this.listOptions.events = await this.populateCalendar()
+        localDateValue(value) {
+            if (/^\d{4}-\d{2}-\d{2}$/.test(value)) return value
+            const date = new Date(value)
+            const month = String(date.getMonth() + 1).padStart(2, '0')
+            const day = String(date.getDate()).padStart(2, '0')
+            return `${date.getFullYear()}-${month}-${day}`
         },
-        async populateCalendar() {
-            const calendar = []
-
+        nextDateValue(value) {
+            const date = new Date(`${value}T12:00:00`)
+            date.setDate(date.getDate() + 1)
+            return this.localDateValue(date)
+        },
+        formatDate(value) {
+            return new Intl.DateTimeFormat(this.calendarOptions.locale, { dateStyle: 'medium' }).format(new Date(value))
+        },
+        async save(info) {
+            if (info.event.extendedProps.type !== 'task') {
+                info.revert()
+                return
+            }
+            await updateKanbanTaskDueDate(info.event.extendedProps.task, this.localDateValue(info.event.start))
+            await this.refreshCalendar()
+        },
+        openDayMenu(info) {
+            this.dayMenu = { date: info.dateStr, x: Math.min(info.jsEvent.clientX, window.innerWidth - 220), y: Math.min(info.jsEvent.clientY, window.innerHeight - 160) }
+        },
+        async createVacation(startDate, endDate) {
+            try {
+                await createVacationPeriod(startDate, endDate)
+                this.pendingVacationStart = ''
+                this.dayMenu = null
+                await this.refreshCalendar()
+            } catch (error) {
+                alertify.error(error.message)
+            }
+        },
+        async addVacationRange() {
+            await this.createVacation(this.vacationStart, this.vacationEnd)
+            this.vacationStart = ''
+            this.vacationEnd = ''
+        },
+        async addSingleVacation() {
+            await this.createVacation(this.dayMenu.date, this.dayMenu.date)
+        },
+        setVacationStart() {
+            this.pendingVacationStart = this.dayMenu.date
+            this.dayMenu = null
+        },
+        async setVacationEnd() {
+            if (!this.pendingVacationStart) {
+                alertify.error(this.$t('calendar.vacations.startFirst'))
+                return
+            }
+            await this.createVacation(this.pendingVacationStart, this.dayMenu.date)
+        },
+        async refreshCalendar() {
+            const [taskEvents, vacations] = await Promise.all([this.populateTasks(), getVacationPeriods()])
+            this.taskEvents = taskEvents
+            this.vacations = vacations
+            const events = [...taskEvents, ...this.populateVacationEvents(vacations)]
+            this.calendarOptions.events = events
+            this.listOptions.events = events
+        },
+        async populateTasks() {
             const overview = await getKanbanTaskOverview()
-            const tasks = [...overview.personal, ...overview.assigned]
+            return [...overview.personal, ...overview.assigned]
                 .filter(task => task.dueDate)
-
-            tasks.forEach(task => {
-                calendar.push({
-                    // Calendar properties
-                    id: `${task.userid}-${task.id}`,
+                .map(task => ({
+                    id: `task-${task.userid}-${task.id}`,
                     title: `${task.name} · ${task.boardName}`,
                     start: task.dueDate,
                     allDay: true,
                     backgroundColor: task.done ? '#7a7a7a' : getTaskPriorityColor(task.priority),
                     borderColor: task.done ? '#7a7a7a' : getTaskPriorityColor(task.priority),
                     classNames: task.done ? ['calendar-task-done'] : [],
-                    extendedProps: {
-                        task
-                    }
-                })
-            })
-
-            return calendar
+                    extendedProps: { type: 'task', task }
+                }))
         },
+        populateVacationEvents(vacations) {
+            return vacations.map(vacation => ({
+                id: `vacation-${vacation.id}`,
+                title: this.$t('calendar.vacations.event', { name: vacation.user.username }),
+                start: this.localDateValue(vacation.startDate),
+                end: this.nextDateValue(this.localDateValue(vacation.endDate)),
+                allDay: true,
+                editable: false,
+                classNames: ['calendar-vacation'],
+                extendedProps: { type: 'vacation' }
+            }))
+        }
     },
     async created() {
         alertify.defaults = alertifysettings;
         applyTheme();
     },
     async mounted() {
-        this.calendarOptions.events = this.listOptions.events = await this.populateCalendar()
-    },
+        await this.refreshCalendar()
+    }
 }
 </script>
