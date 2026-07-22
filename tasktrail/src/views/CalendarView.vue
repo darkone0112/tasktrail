@@ -14,6 +14,9 @@ div
         button.button.is-small.is-light.calendar-vacation-overview-button(type="button" @click="showVacationOverview = true")
             i.fas.fa-users(aria-hidden="true")
             span {{ $t('calendar.vacations.team') }}
+        button.button.is-small.is-light.calendar-vacation-overview-button(v-if="ownVacations.length" type="button" @click="showMyVacationOverview = true")
+            i.fas.fa-trash-can(aria-hidden="true")
+            span {{ $t('calendar.vacations.manage') }}
     FullCalendar.calendar(:options="calendarOptions")
     FullCalendar.list(:options="listOptions")
 
@@ -21,7 +24,13 @@ div
         p.calendar-day-menu-title {{ dayMenu.date }}
         button.button.is-small.is-light(type="button" @click="addSingleVacation") {{ $t('calendar.vacations.addSingle') }}
         button.button.is-small.is-light(type="button" @click="setVacationStart") {{ $t('calendar.vacations.addStart') }}
-        button.button.is-small.is-light(type="button" @click="setVacationEnd") {{ $t('calendar.vacations.addEnd') }}
+        button.button.is-small.is-light(type="button" :disabled="!pendingVacationStart" @click="setVacationEnd") {{ $t('calendar.vacations.addEnd') }}
+        button.button.is-small.is-danger.is-light(
+            v-for="vacation in vacationsOnSelectedDay"
+            :key="vacation.id"
+            type="button"
+            @click="removeVacation(vacation)"
+        ) {{ $t('calendar.vacations.removeRange') }}
 
     .modal.is-active.calendar-vacation-modal(v-if="showVacationOverview" @keyup.esc="showVacationOverview = false")
         .modal-background(@click="showVacationOverview = false")
@@ -36,11 +45,24 @@ div
                         strong {{ vacation.user.username }}
                         span {{ formatDate(vacation.startDate) }} - {{ formatDate(vacation.endDate) }}
 
+    .modal.is-active.calendar-vacation-modal(v-if="showMyVacationOverview" @keyup.esc="showMyVacationOverview = false")
+        .modal-background(@click="showMyVacationOverview = false")
+        .modal-card.calendar-vacation-modal-card
+            header.modal-card-head
+                p.modal-card-title {{ $t('calendar.vacations.manageTitle') }}
+                button.delete(type="button" :aria-label="$t('kanban.card.closeDetails')" @click="showMyVacationOverview = false")
+            section.modal-card-body
+                ul.calendar-vacation-list
+                    li(v-for="vacation in ownVacations" :key="vacation.id")
+                        span {{ formatDate(vacation.startDate) }} - {{ formatDate(vacation.endDate) }}
+                        button.button.is-small.is-danger.is-light(type="button" :aria-label="$t('calendar.vacations.removeRange')" @click="removeVacation(vacation)")
+                            i.fas.fa-trash-can(aria-hidden="true")
+
 </template>
 
 <script>
 import alertify from 'alertifyjs'
-import { getKanbanTaskOverview, getTaskPriorityColor, updateKanbanTaskDueDate, getVacationPeriods, createVacationPeriod, alertifysettings, applyTheme } from '../utils/helpers'
+import { getKanbanTaskOverview, getTaskPriorityColor, updateKanbanTaskDueDate, getVacationPeriods, createVacationPeriod, deleteVacationPeriod, getUser, alertifysettings, applyTheme } from '../utils/helpers'
 
 import FullCalendar from '@fullcalendar/vue3'
 import dayGridPlugin from '@fullcalendar/daygrid'
@@ -62,6 +84,8 @@ export default {
             pendingVacationStart: '',
             dayMenu: null,
             showVacationOverview: false,
+            showMyVacationOverview: false,
+            currentUserId: null,
             calendarOptions: {
                 events: [],
                 locales: allLocales,
@@ -94,6 +118,17 @@ export default {
     computed: {
         dayMenuStyle() {
             return { left: `${this.dayMenu.x}px`, top: `${this.dayMenu.y}px` }
+        },
+        ownVacations() {
+            return this.vacations.filter(vacation => vacation.userId === this.currentUserId)
+        },
+        vacationsOnSelectedDay() {
+            if (!this.dayMenu) return []
+            return this.ownVacations.filter(vacation => {
+                const start = this.localDateValue(vacation.startDate)
+                const end = this.localDateValue(vacation.endDate)
+                return start <= this.dayMenu.date && end >= this.dayMenu.date
+            })
         }
     },
     methods: {
@@ -133,6 +168,15 @@ export default {
                 alertify.error(error.message)
             }
         },
+        async removeVacation(vacation) {
+            try {
+                await deleteVacationPeriod(vacation.id)
+                this.dayMenu = null
+                await this.refreshCalendar()
+            } catch (error) {
+                alertify.error(error.message)
+            }
+        },
         async addVacationRange() {
             await this.createVacation(this.vacationStart, this.vacationEnd)
             this.vacationStart = ''
@@ -141,9 +185,10 @@ export default {
         async addSingleVacation() {
             await this.createVacation(this.dayMenu.date, this.dayMenu.date)
         },
-        setVacationStart() {
+        async setVacationStart() {
             this.pendingVacationStart = this.dayMenu.date
             this.dayMenu = null
+            await this.refreshCalendar()
         },
         async setVacationEnd() {
             if (!this.pendingVacationStart) {
@@ -156,7 +201,7 @@ export default {
             const [taskEvents, vacations] = await Promise.all([this.populateTasks(), getVacationPeriods()])
             this.taskEvents = taskEvents
             this.vacations = vacations
-            const events = [...taskEvents, ...this.populateVacationEvents(vacations)]
+            const events = [...taskEvents, ...this.populateVacationEvents(vacations), ...this.populatePendingVacationStart()]
             this.calendarOptions.events = events
             this.listOptions.events = events
         },
@@ -186,6 +231,18 @@ export default {
                 classNames: ['calendar-vacation'],
                 extendedProps: { type: 'vacation' }
             }))
+        },
+        populatePendingVacationStart() {
+            if (!this.pendingVacationStart) return []
+            return [{
+                id: 'pending-vacation-start',
+                title: this.$t('calendar.vacations.pendingStart'),
+                start: this.pendingVacationStart,
+                allDay: true,
+                editable: false,
+                classNames: ['calendar-vacation-pending'],
+                extendedProps: { type: 'vacation-pending' }
+            }]
         }
     },
     async created() {
@@ -193,6 +250,8 @@ export default {
         applyTheme();
     },
     async mounted() {
+        const user = await getUser()
+        this.currentUserId = user?.userid || null
         await this.refreshCalendar()
     }
 }

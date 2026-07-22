@@ -130,6 +130,11 @@
         border-color: var(--kanban-border)
         background: var(--kanban-surface)
 
+    .modal-card-title,
+    strong,
+    span
+        color: var(--kanban-text) !important
+
 .calendar-vacation-list
     display: grid
     gap: .5rem
@@ -149,6 +154,10 @@
 .calendar-vacation
     background-color: #485fc7 !important
     border-color: #485fc7 !important
+
+.calendar-vacation-pending
+    background-color: var(--kanban-marker) !important
+    border-color: var(--kanban-marker) !important
 
 .calendar-task-done
     opacity: .65

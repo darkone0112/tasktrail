@@ -478,6 +478,25 @@ router.post("/vacations", async function (req, res, next) {
 	}
 });
 
+router.delete("/vacations/:id", async function (req, res, next) {
+	try {
+		const vacation = await prisma.vacationPeriods.findUnique({
+			where: { id: Number(req.params.id) }
+		});
+		if (!vacation) {
+			return res.status(404).json({ error: "Vacation not found" });
+		}
+		if (vacation.user_id !== req.currentUser.id && req.currentUser.role !== "ADMIN") {
+			return res.status(403).json({ error: "You cannot delete this vacation" });
+		}
+
+		await prisma.vacationPeriods.delete({ where: { id: vacation.id } });
+		return res.status(204).end();
+	} catch (error) {
+		return next(error);
+	}
+});
+
 router.post("/tasks/personal", async function (req, res, next) {
 	try {
 		const name = String(req.body.name || "").trim();

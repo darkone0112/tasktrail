@@ -170,3 +170,19 @@ Files:
 
 Verification: `git diff --check` passed. Runtime, Prisma, locale parsing, and
 browser checks remain pending because the environment has no Node.js toolchain.
+
+## 2026-07-22T16:11:13+02:00 - Completed themed vacation management
+
+Reason/result: Made vacation modal text inherit the selected theme, added
+owner-checked vacation deletion from a personal list and day menu, and showed a
+themed pending-start marker while preventing an end selection without a start.
+
+Files:
+- `tasktrail/routes/api.js`
+- `tasktrail/src/locales/locales.json`
+- `tasktrail/src/styles/components/calendar.sass`
+- `tasktrail/src/utils/helpers.js`
+- `tasktrail/src/views/CalendarView.vue`
+
+Verification: `git diff --check` passed. Runtime, locale parsing, and browser
+checks remain pending because the environment has no Node.js toolchain.
