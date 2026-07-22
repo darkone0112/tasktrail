@@ -23,6 +23,19 @@
     $TT-red-lighter: #feecf0
     $TT-red-dark: #761b2d
 
+    --kanban-surface: #{$TT-grey}
+    --kanban-soft-surface: #{$TT-grey-dark}
+    --kanban-text: #{$TT-white}
+    --kanban-muted-text: #{$TT-grey-lighter}
+    --kanban-border: #{$TT-grey-light}
+    --kanban-icon-hover: #{$TT-grey-light}
+    --kanban-icon-hover-text: #{$TT-white}
+    --kanban-input-surface: #{$TT-grey-dark}
+    --kanban-tag-surface: #{$TT-green-dark}
+    --kanban-tag-text: #{$TT-green-lighter}
+    --kanban-marker: #{$TT-blue-light}
+    --kanban-color-scheme: dark
+
     background-color: $TT-black !important
 
     // Font color
@@ -103,39 +116,20 @@
 
     .kanban-action strong
         color: $TT-grey-light !important
-    .kanban-deadline-input
-        color: $TT-white !important
-        border-color: $TT-grey-light !important
-        background-color: $TT-grey !important
-        color-scheme: dark
-    .kanban-card-icon
-        color: $TT-grey-lighter !important
-    .kanban-card-icon:hover, .kanban-card-icon:focus-visible
-        background-color: $TT-grey !important
     .kanban-delete-button
         color: $TT-red-light !important
-    .kanban-inline-tag
-        color: $TT-green-lighter !important
-        background-color: $TT-green-dark !important
-    .kanban-detail-meta, .kanban-activity-form
-        border-color: $TT-grey !important
-    .kanban-detail-label, .kanban-timeline-heading time, .kanban-recycle-entry small
-        color: $TT-grey-lighter !important
-    .kanban-timeline::before
-        background-color: $TT-grey-light !important
-    .kanban-timeline-marker
-        border-color: $TT-blue-light !important
-        background-color: $TT-grey !important
-    .kanban-recycle-entry
-        border-color: $TT-grey !important
-        background-color: $TT-grey-darker !important
     .kanban-recycle-button
-        color: $TT-grey-lighter !important
+        color: var(--kanban-text) !important
         border-color: $TT-grey-light !important
-        background-color: $TT-grey-dark !important
-    .kanban-detail-meta .tag.is-light, .kanban-recycle-entry .tag.is-light
-        color: $TT-grey-lighter !important
-        background-color: $TT-grey !important
+        background-color: var(--kanban-soft-surface) !important
+    .kanban-task-details-modal .modal-card-head, .kanban-recycle-bin-modal .modal-card-head
+        color: var(--kanban-text) !important
+        border-color: var(--kanban-border) !important
+        background-color: var(--kanban-soft-surface) !important
+    .kanban-task-details-modal .modal-card-body, .kanban-recycle-bin-modal .modal-card-body
+        color: var(--kanban-text) !important
+        border-color: var(--kanban-border) !important
+        background-color: var(--kanban-surface) !important
     .vc-twitter
         background-color: $TT-grey-dark !important
     .vc-twitter-triangle
@@ -287,6 +281,19 @@
     $TT-red: red
     $TT-yellow: yellow
 
+    --kanban-surface: #{$TT-black}
+    --kanban-soft-surface: #{$TT-black}
+    --kanban-text: #{$TT-white}
+    --kanban-muted-text: #{$TT-white}
+    --kanban-border: #{$TT-white}
+    --kanban-icon-hover: #{$TT-white}
+    --kanban-icon-hover-text: #{$TT-black}
+    --kanban-input-surface: #{$TT-black}
+    --kanban-tag-surface: #{$TT-yellow}
+    --kanban-tag-text: #{$TT-black}
+    --kanban-marker: #{$TT-yellow}
+    --kanban-color-scheme: dark
+
     background-color: $TT-black !important
 
     // Font color
@@ -362,42 +369,21 @@
         color: $TT-black !important
     .kanban-action strong, .kanban__quantity
         color: $TT-white !important
-    .kanban-deadline-input
-        color: $TT-white !important
-        border-color: $TT-white !important
-        background-color: $TT-black !important
-        color-scheme: dark
-    .kanban-card-icon
-        color: $TT-white !important
-    .kanban-card-icon:hover, .kanban-card-icon:focus-visible
-        color: $TT-black !important
-        background-color: $TT-white !important
     .kanban-delete-button
         color: $TT-red !important
-    .kanban-inline-tag
-        color: $TT-black !important
-        background-color: $TT-yellow !important
-    .kanban-detail-meta, .kanban-activity-form
-        border-color: $TT-white !important
-    .kanban-detail-label, .kanban-timeline-heading time, .kanban-recycle-entry small
-        color: $TT-white !important
-    .kanban-timeline::before
-        background-color: $TT-white !important
-    .kanban-timeline-marker
-        border-color: $TT-yellow !important
-        background-color: $TT-black !important
-    .kanban-recycle-entry
-        border-color: $TT-white !important
-        background-color: $TT-black !important
-        box-shadow: inset 0 0 0 1px $TT-white !important
     .kanban-recycle-button
-        color: $TT-white !important
+        color: var(--kanban-text) !important
         border-color: $TT-white !important
-        background-color: $TT-black !important
+        background-color: var(--kanban-soft-surface) !important
         box-shadow: inset 0 0 0 1px $TT-white !important
-    .kanban-detail-meta .tag.is-light, .kanban-recycle-entry .tag.is-light
-        color: $TT-black !important
-        background-color: $TT-white !important
+    .kanban-task-details-modal .modal-card-head, .kanban-recycle-bin-modal .modal-card-head
+        color: var(--kanban-text) !important
+        border-color: var(--kanban-border) !important
+        background-color: var(--kanban-soft-surface) !important
+    .kanban-task-details-modal .modal-card-body, .kanban-recycle-bin-modal .modal-card-body
+        color: var(--kanban-text) !important
+        border-color: var(--kanban-border) !important
+        background-color: var(--kanban-surface) !important
     .icon.is-clickable .fas.fa-xmark
         color: $TT-white !important
     .vc-twitter

@@ -32,6 +32,27 @@ function formatDeadline(value) {
 	return value ? new Date(value).toISOString().slice(0, 10) : null;
 }
 
+function describeDeadline(value) {
+	return formatDeadline(value) || "no deadline";
+}
+
+function describePriority(value) {
+	return ["low", "normal", "high"][Number(value)] || "low";
+}
+
+function getKanbanTags(value) {
+	return new Set(String(value || "").match(/#[\p{L}\p{N}_-]+/gu) || []);
+}
+
+function getKanbanTitle(value) {
+	return String(value || "").replace(/#[\p{L}\p{N}_-]+/gu, "").replace(/\s+/g, " ").trim();
+}
+
+function describeTitle(value) {
+	const title = String(value || "").trim();
+	return title.length > 120 ? `${title.slice(0, 117)}...` : title || "(empty)";
+}
+
 async function recordKanbanActivity(client, task, userId, body) {
 	return client.kanbanTaskActivities.create({
 		data: {
@@ -474,10 +495,20 @@ router.put("/tasks/kanban/:userid/:id", async function (req, res, next) {
 			data
 		});
 		if (Object.prototype.hasOwnProperty.call(data, "done") && task.done !== data.done) {
-			await recordKanbanActivity(prisma, task, req.currentUser.id, "Card completion status updated.");
+			await recordKanbanActivity(
+				prisma,
+				task,
+				req.currentUser.id,
+				`Card completion status changed from ${task.done ? "completed" : "not completed"} to ${data.done ? "completed" : "not completed"}.`
+			);
 		}
 		if (Object.prototype.hasOwnProperty.call(data, "due_date") && formatDeadline(task.due_date) !== formatDeadline(data.due_date)) {
-			await recordKanbanActivity(prisma, task, req.currentUser.id, "Card deadline updated.");
+			await recordKanbanActivity(
+				prisma,
+				task,
+				req.currentUser.id,
+				`Card deadline changed from ${describeDeadline(task.due_date)} to ${describeDeadline(data.due_date)}.`
+			);
 		}
 		return res.json(updatedTask);
 	} catch (error) {
@@ -817,12 +848,25 @@ router.post("/save/kanban", async function (req, res, next) {
 					const nextDeadline = parseDeadline(task.due_date);
 					const activities = [];
 
-					if (existingTask.name !== nextName) activities.push("Card title updated.");
-					if (existingTask.priority !== nextPriority) activities.push("Card priority updated.");
-					if (formatDeadline(existingTask.due_date) !== formatDeadline(nextDeadline)) {
-						activities.push("Card deadline updated.");
+					const previousTags = getKanbanTags(existingTask.name);
+					const nextTags = getKanbanTags(nextName);
+					const addedTags = [...nextTags].filter(tag => !previousTags.has(tag));
+					const removedTags = [...previousTags].filter(tag => !nextTags.has(tag));
+
+					if (getKanbanTitle(existingTask.name) !== getKanbanTitle(nextName)) {
+						activities.push(`Card title changed from "${describeTitle(existingTask.name)}" to "${describeTitle(nextName)}".`);
 					}
-					if (existingTask.done !== nextDone) activities.push("Card completion status updated.");
+					if (addedTags.length) activities.push(`Tags added: ${addedTags.join(", ")}.`);
+					if (removedTags.length) activities.push(`Tags removed: ${removedTags.join(", ")}.`);
+					if (existingTask.priority !== nextPriority) {
+						activities.push(`Card priority changed from ${describePriority(existingTask.priority)} to ${describePriority(nextPriority)}.`);
+					}
+					if (formatDeadline(existingTask.due_date) !== formatDeadline(nextDeadline)) {
+						activities.push(`Card deadline changed from ${describeDeadline(existingTask.due_date)} to ${describeDeadline(nextDeadline)}.`);
+					}
+					if (existingTask.done !== nextDone) {
+						activities.push(`Card completion status changed from ${existingTask.done ? "completed" : "not completed"} to ${nextDone ? "completed" : "not completed"}.`);
+					}
 					if (existingTask.kanbanColumnsId !== columnData.id) {
 						activities.push(`Card moved from ${existingTask.KanbanColumns.title} to ${columnData.title}.`);
 					}
@@ -1052,7 +1096,10 @@ router.put("/kanban/tasks/:userid/:id/assignee", requireAdmin, async function (r
 					userid: taskOwnerId
 				}
 			},
-			include: { KanbanColumns: true }
+			include: {
+				KanbanColumns: true,
+				Assignee: { select: { username: true } }
+			}
 		});
 		if (!task?.KanbanColumns?.board_id || task.deleted_at) {
 			return res.status(404).json({ error: "Task not found" });
@@ -1092,7 +1139,9 @@ router.put("/kanban/tasks/:userid/:id/assignee", requireAdmin, async function (r
 			}
 		});
 		if (task.assigned_user_id !== updatedTask.assigned_user_id) {
-			await recordKanbanActivity(prisma, task, req.currentUser.id, "Card assignee updated.");
+			const previousAssignee = task.Assignee?.username || "unassigned";
+			const nextAssignee = updatedTask.Assignee?.username || "unassigned";
+			await recordKanbanActivity(prisma, task, req.currentUser.id, `Card assignee changed from ${previousAssignee} to ${nextAssignee}.`);
 		}
 
 		return res.json({

@@ -89,8 +89,14 @@
         :details="taskDetails"
         :loading="taskDetailsLoading"
         :submitting="taskActivitySaving"
+        :can-assign="isAdmin && selectedBoard && selectedBoard.visibility !== 'PERSONAL'"
+        :users="assignmentUsers"
         @close="closeTaskDetails"
         @add-activity="addTaskActivity"
+        @update-title="updateTaskDetails({ name: $event })"
+        @update-priority="updateTaskDetails({ priority: $event })"
+        @update-deadline="updateTaskDeadline($event)"
+        @update-assignee="updateTaskAssignee($event)"
     )
 
     KanbanRecycleBin(
@@ -171,6 +177,9 @@ export default {
     methods: {
         taskKey(task) {
             return `${task.userid}-${task.id}`
+        },
+        findTask(task) {
+            return this.columns.flatMap(column => column.tasks).find(candidate => this.taskKey(candidate) === this.taskKey(task)) || null
         },
         showError(error) {
             alertify.error(error.message || String(error))
@@ -290,6 +299,35 @@ export default {
                 if (this.activeTask === task) this.taskDetailsLoading = false
             }
         },
+        async refreshTaskDetails() {
+            if (!this.activeTask) return
+            const task = this.activeTask
+            const details = await getKanbanTaskDetails(task)
+            if (this.activeTask && this.taskKey(this.activeTask) === this.taskKey(task)) this.taskDetails = details
+        },
+        async updateTaskDetails(changes) {
+            if (!this.activeTask) return
+            Object.assign(this.activeTask, changes)
+            try {
+                await this.save()
+                await this.refreshTaskDetails()
+            } catch (error) {
+                alertify.error(error.message)
+            }
+        },
+        async updateTaskDeadline(deadline) {
+            return this.updateTaskDetails({ due_date: deadline ? `${deadline}T12:00:00.000Z` : null })
+        },
+        async updateTaskAssignee(assignedUserId) {
+            if (!this.activeTask) return
+            try {
+                await assignKanbanTask(this.activeTask, assignedUserId)
+                await this.getKanban()
+                await this.refreshTaskDetails()
+            } catch (error) {
+                alertify.error(error.message)
+            }
+        },
         closeTaskDetails() {
             this.activeTask = null
             this.taskDetails = null
@@ -319,6 +357,7 @@ export default {
             const columns = await getKanban(boardId)
             if (loadVersion === this.kanbanLoadVersion && this.selectedBoard?.id === boardId) {
                 this.columns = columns
+                if (this.activeTask) this.activeTask = this.findTask(this.activeTask) || this.activeTask
             }
         },
         async save() {

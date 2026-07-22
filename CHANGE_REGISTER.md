@@ -133,3 +133,21 @@ Files:
 Verification: Locale JSON and `git diff --check` passed. Runtime, Prisma, and
 browser checks remain pending because Node.js is not installed on the current
 environment PATH.
+
+## 2026-07-22T15:35:07+02:00 - Centralized themed Kanban detail surfaces
+
+Reason/result: Moved new Kanban detail, timeline, date, and recycle UI colors
+to active-theme variables; added value-aware and tag-aware activity records;
+enabled editing card details in the modal; and isolated timeline scrolling.
+
+Files:
+- `tasktrail/routes/api.js`
+- `tasktrail/src/components/modals/KanbanTaskDetails.vue`
+- `tasktrail/src/locales/locales.json`
+- `tasktrail/src/styles/components/kanban.sass`
+- `tasktrail/src/styles/components/settings.sass`
+- `tasktrail/src/views/KanbanView.vue`
+
+Verification: Locale JSON and `git diff --check` passed. Runtime and browser
+checks remain pending because Node.js is not installed on the current
+environment PATH.

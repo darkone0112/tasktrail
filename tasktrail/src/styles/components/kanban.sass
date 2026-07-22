@@ -8,6 +8,20 @@
     > .button
         margin-bottom: .75rem
 
+:root
+    --kanban-surface: #fff
+    --kanban-soft-surface: #f7f7f7
+    --kanban-text: #363636
+    --kanban-muted-text: #555
+    --kanban-border: #e0e0e0
+    --kanban-icon-hover: #e0e0e0
+    --kanban-icon-hover-text: #363636
+    --kanban-input-surface: #fff
+    --kanban-tag-surface: #d7faef
+    --kanban-tag-text: #363636
+    --kanban-marker: #185a9d
+    --kanban-color-scheme: light
+
 .kanban-wrapper
     overflow-x: auto
     overflow-y: hidden
@@ -119,8 +133,8 @@
     margin: 0 .2rem .2rem 0
     padding: .08rem .4rem
     border-radius: 3px
-    background: $secondary-light
-    color: $clr-black
+    background: var(--kanban-tag-surface)
+    color: var(--kanban-tag-text)
     font-size: .85em
     font-weight: 600
 
@@ -189,6 +203,10 @@
     padding-left: .45rem
     padding-right: .25rem
     font-size: .75rem
+    color: var(--kanban-text)
+    border-color: var(--kanban-border)
+    background-color: var(--kanban-input-surface)
+    color-scheme: var(--kanban-color-scheme)
 
 .kanban-card-icon
     display: grid
@@ -199,11 +217,12 @@
     border: 0
     border-radius: 4px
     background: transparent
-    color: inherit
+    color: var(--kanban-text)
 
     &:hover,
     &:focus-visible
-        background: $clr-white
+        background: var(--kanban-icon-hover)
+        color: var(--kanban-icon-hover-text)
 
 .kanban-card-footer
     display: flex
@@ -231,17 +250,27 @@
 
 .kanban-task-details-modal
     width: min(44rem, calc(100vw - 2rem))
+    height: min(46rem, calc(100vh - 2rem))
     max-height: calc(100vh - 2rem)
+    color: var(--kanban-text)
+    background-color: var(--kanban-surface)
 
     .modal-card-head
         gap: 1rem
+        border-color: var(--kanban-border)
+        background-color: var(--kanban-soft-surface)
 
     .modal-card-title
         min-width: 0
         overflow-wrap: anywhere
 
     .modal-card-body
-        overflow-y: auto
+        display: flex
+        flex: 1 1 auto
+        flex-direction: column
+        min-height: 0
+        overflow: hidden
+        background-color: var(--kanban-surface)
 
 .kanban-detail-loading
     display: grid
@@ -255,7 +284,7 @@
     grid-template-columns: repeat(auto-fit, minmax(9rem, 1fr))
     gap: .75rem
     padding-bottom: 1rem
-    border-bottom: 1px solid $clr-white
+    border-bottom: 1px solid var(--kanban-border)
 
 .kanban-detail-meta-item
     display: flex
@@ -264,19 +293,35 @@
     min-width: 0
     overflow-wrap: anywhere
 
+.kanban-detail-title-field
+    grid-column: 1 / -1
+
+    .textarea
+        color: var(--kanban-text)
+        border-color: var(--kanban-border)
+        background-color: var(--kanban-input-surface)
+
 .kanban-detail-label
-    color: $clr-gray-dark
+    color: var(--kanban-muted-text)
     font-size: .75rem
     font-weight: 700
     text-transform: uppercase
 
 .kanban-detail-timeline
+    display: flex
+    flex: 1 1 auto
+    flex-direction: column
+    min-height: 0
     margin-top: 1.5rem
 
 .kanban-timeline
     position: relative
     margin-top: 1rem
     padding-left: 1.5rem
+    padding-right: .5rem
+    flex: 1 1 auto
+    min-height: 0
+    overflow-y: auto
 
     &::before
         position: absolute
@@ -284,7 +329,7 @@
         bottom: .25rem
         left: .35rem
         width: 2px
-        background: $clr-white
+        background: var(--kanban-border)
         content: ""
 
 .kanban-timeline-entry
@@ -300,12 +345,13 @@
     left: -1.5rem
     width: .75rem
     height: .75rem
-    border: 2px solid $primary
+    border: 2px solid var(--kanban-marker)
     border-radius: 50%
-    background: $clr-pure-white
+    background: var(--kanban-surface)
 
 .kanban-timeline-content
     min-width: 0
+    color: var(--kanban-text)
     overflow-wrap: anywhere
 
     p
@@ -318,14 +364,24 @@
     align-items: baseline
     gap: .5rem
 
+    strong
+        color: var(--kanban-text)
+
     time
-        color: $clr-gray-dark
+        color: var(--kanban-muted-text)
         font-size: .8rem
 
 .kanban-activity-form
     margin-top: 1.5rem
     padding-top: 1rem
-    border-top: 1px solid $clr-white
+    flex: 0 0 auto
+    border-top: 1px solid var(--kanban-border)
+
+    .textarea
+        color: var(--kanban-text)
+        border-color: var(--kanban-border)
+        background-color: var(--kanban-input-surface)
+        color-scheme: var(--kanban-color-scheme)
 
 .kanban-activity-actions
     display: flex
@@ -337,6 +393,21 @@
 
 .kanban-recycle-bin-modal
     width: min(38rem, calc(100vw - 2rem))
+    color: var(--kanban-text)
+    background-color: var(--kanban-surface)
+
+    .modal-card-head,
+    .modal-card-body
+        border-color: var(--kanban-border)
+        background-color: var(--kanban-surface)
+
+    .modal-card-head
+        background-color: var(--kanban-soft-surface)
+
+    .notification
+        color: var(--kanban-text)
+        border: 1px solid var(--kanban-border)
+        background-color: var(--kanban-soft-surface)
 
 .kanban-recycle-list
     display: grid
@@ -348,8 +419,9 @@
     justify-content: space-between
     gap: 1rem
     padding: .85rem
-    border: 1px solid $clr-white
+    border: 1px solid var(--kanban-border)
     border-radius: 4px
+    background-color: var(--kanban-soft-surface)
 
 .kanban-recycle-entry-main
     display: flex
@@ -362,7 +434,7 @@
 
     small
         flex-basis: 100%
-        color: $clr-gray-dark
+        color: var(--kanban-muted-text)
 
 .dropdown-trigger button
     width: fit-content !important

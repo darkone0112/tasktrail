@@ -3,7 +3,7 @@
     .modal-background(@click="$emit('close')")
     .modal-card.kanban-task-details-modal
         header.modal-card-head
-            .modal-card-title {{ task.name || $t('kanban.card.untitled') }}
+            .modal-card-title {{ details ? (details.name || $t('kanban.card.untitled')) : (task.name || $t('kanban.card.untitled')) }}
             button.delete(type="button" :aria-label="$t('kanban.card.closeDetails')" @click="$emit('close')")
 
         section.modal-card-body
@@ -13,18 +13,41 @@
 
             template(v-else-if="details")
                 .kanban-detail-meta
+                    .kanban-detail-meta-item.kanban-detail-title-field
+                        label.kanban-detail-label(for="kanban-detail-title") {{ $t('kanban.card.title') }}
+                        textarea#kanban-detail-title.textarea(
+                            :value="details.name"
+                            rows="2"
+                            @change="$emit('update-title', $event.target.value)"
+                        )
                     .kanban-detail-meta-item
-                        span.kanban-detail-label {{ $t('kanban.card.column') }}
+                        label.kanban-detail-label {{ $t('kanban.card.column') }}
                         span.tag.is-light {{ details.column.title }}
                     .kanban-detail-meta-item
-                        span.kanban-detail-label {{ $t('kanban.card.priority') }}
-                        span.tag(:style="{ backgroundColor: priorityColor }") {{ priorityName }}
+                        label.kanban-detail-label(for="kanban-detail-priority") {{ $t('kanban.card.priority') }}
+                        .select.is-small
+                            select#kanban-detail-priority(
+                                :value="details.priority"
+                                @change="$emit('update-priority', Number($event.target.value))"
+                            )
+                                option(v-for="priority in priorities" :key="priority.value" :value="priority.value") {{ priority.name }}
                     .kanban-detail-meta-item
-                        span.kanban-detail-label {{ $t('kanban.card.deadline') }}
-                        span {{ formattedDeadline }}
+                        label.kanban-detail-label(for="kanban-detail-deadline") {{ $t('kanban.card.deadline') }}
+                        input#kanban-detail-deadline.input.is-small.kanban-deadline-input(
+                            type="date"
+                            :value="deadlineValue"
+                            @change="$emit('update-deadline', $event.target.value)"
+                        )
                     .kanban-detail-meta-item
-                        span.kanban-detail-label {{ $t('kanban.card.assignee') }}
-                        span {{ details.assignee ? details.assignee.username : $t('kanban.assignment.unassigned') }}
+                        label.kanban-detail-label(for="kanban-detail-assignee") {{ $t('kanban.card.assignee') }}
+                        .select.is-small(v-if="canAssign")
+                            select#kanban-detail-assignee(
+                                :value="details.assigned_user_id || ''"
+                                @change="$emit('update-assignee', $event.target.value)"
+                            )
+                                option(value="") {{ $t('kanban.assignment.unassigned') }}
+                                option(v-for="member in users" :key="member.id" :value="member.id") {{ member.username }}
+                        span(v-else) {{ details.assignee ? details.assignee.username : $t('kanban.assignment.unassigned') }}
 
                 section.kanban-detail-timeline
                     h3.title.is-5 {{ $t('kanban.card.activity') }}
@@ -55,8 +78,6 @@
 </template>
 
 <script>
-import { getTaskPriorityColor } from '../../utils/helpers'
-
 export default {
     name: 'KanbanTaskDetails',
     props: {
@@ -75,25 +96,31 @@ export default {
         submitting: {
             type: Boolean,
             default: false
+        },
+        canAssign: {
+            type: Boolean,
+            default: false
+        },
+        users: {
+            type: Array,
+            default: () => []
         }
     },
-    emits: ['close', 'add-activity'],
+    emits: ['close', 'add-activity', 'update-title', 'update-priority', 'update-deadline', 'update-assignee'],
     data() {
         return {
             activityBody: ''
         }
     },
     computed: {
-        priorityColor() {
-            return getTaskPriorityColor(this.details?.priority)
+        priorities() {
+            return ['low', 'normal', 'high'].map((priority, value) => ({
+                value,
+                name: this.$t(`kanban.taskPriority.${priority}`)
+            }))
         },
-        priorityName() {
-            const priorities = ['low', 'normal', 'high']
-            return this.$t(`kanban.taskPriority.${priorities[this.details?.priority] || priorities[0]}`)
-        },
-        formattedDeadline() {
-            if (!this.details.due_date) return this.$t('kanban.card.noDeadline')
-            return new Intl.DateTimeFormat(this.$i18n.locale, { dateStyle: 'medium' }).format(new Date(this.details.due_date))
+        deadlineValue() {
+            return this.details?.due_date ? String(this.details.due_date).slice(0, 10) : ''
         }
     },
     methods: {
