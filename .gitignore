@@ -11,3 +11,6 @@ tasktrail/public/media/installers/*
 !tasktrail/public/media/images/uploads/userpic.png
 
 dist
+
+agents.md
+CHANGES_REGISTER.md
