@@ -17,7 +17,9 @@ div
     FullCalendar.calendar(:options="calendarOptions")
     FullCalendar.list(:options="listOptions")
 
-    .calendar-day-menu.box(v-if="dayMenu" :style="dayMenuStyle")
+    .calendar-day-menu.box(v-if="dayMenu" ref="dayMenu" :style="dayMenuStyle")
+        button.calendar-day-menu-close(type="button" :aria-label="$t('kanban.card.closeDetails')" @click="closeDayMenu")
+            i.fas.fa-xmark(aria-hidden="true")
         p.calendar-day-menu-title {{ dayMenu.date }}
         button.button.is-small.is-light(type="button" @click="addSingleVacation") {{ $t('calendar.vacations.addSingle') }}
         button.button.is-small.is-light(type="button" @click="setVacationStart") {{ $t('calendar.vacations.addStart') }}
@@ -195,6 +197,14 @@ export default {
         openDayMenu(info) {
             this.dayMenu = { date: info.dateStr, x: Math.min(info.jsEvent.clientX, window.innerWidth - 220), y: Math.min(info.jsEvent.clientY, window.innerHeight - 160) }
         },
+        closeDayMenu() {
+            this.dayMenu = null
+        },
+        closeDayMenuOnOutsideClick(event) {
+            if (!this.dayMenu || this.$refs.dayMenu?.contains(event.target)) return
+            if (event.target.closest('.fc-daygrid-day, .fc-event')) return
+            this.closeDayMenu()
+        },
         openEventMenu(info) {
             if (info.event.extendedProps.type !== 'vacation') return
             const day = info.jsEvent.target.closest('[data-date]')?.dataset.date || this.localDateValue(info.event.start)
@@ -339,6 +349,10 @@ export default {
         const user = await getUser()
         this.currentUserId = user?.userid || null
         await this.refreshCalendar()
+        document.addEventListener('click', this.closeDayMenuOnOutsideClick)
+    },
+    beforeUnmount() {
+        document.removeEventListener('click', this.closeDayMenuOnOutsideClick)
     }
 }
 </script>

@@ -202,3 +202,15 @@ Files:
 
 Verification: `git diff --check` passed. Runtime, locale parsing, and browser
 checks remain pending because the environment has no Node.js toolchain.
+
+## 2026-07-23T12:02:55+02:00 - Added vacation menu dismissal controls
+
+Reason/result: Added a compact close icon to the vacation day menu and closed
+the menu when users click outside calendar days, vacation marks, or the menu.
+
+Files:
+- `tasktrail/src/styles/components/calendar.sass`
+- `tasktrail/src/views/CalendarView.vue`
+
+Verification: `git diff --check` passed. Runtime and browser checks remain
+pending because the environment has no Node.js toolchain.

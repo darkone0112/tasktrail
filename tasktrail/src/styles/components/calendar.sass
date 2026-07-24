@@ -119,7 +119,26 @@
     .button
         justify-content: flex-start
 
+.calendar-day-menu-close
+    position: absolute
+    top: .3rem
+    right: .3rem
+    display: grid
+    width: 1.5rem
+    height: 1.5rem
+    padding: 0
+    place-items: center
+    color: var(--kanban-muted-text)
+    border: 0
+    background: transparent
+
+    &:hover,
+    &:focus-visible
+        color: var(--kanban-text)
+        background: var(--kanban-icon-hover)
+
 .calendar-day-menu-title
+    padding-right: 1.5rem
     margin: 0
     font-weight: bold
 
